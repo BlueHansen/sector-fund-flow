@@ -270,6 +270,7 @@ const state = {
 let fetching = false;
 let fetchGen = 0;   // 请求代际号：切换数据源 +1，旧代响应全部作废
 let cycleCount = 0;
+let failStreak = 0; // 连续失败计数：≥3 次后拉长刷新间隔（避免限流期间硬冲加剧封锁）
 
 /* ================= JSONP（3 秒超时，失败重试 1 次） ================= */
 let seq = 0;
@@ -450,6 +451,7 @@ async function fetchCycle(force) {
   const mySrc = state.source;
   fetching = true;
   try {
+    failStreak = 0; // 请求成功重置退避
     const fs = SOURCES[mySrc].fs;
     // ① po=1 / po=0 并行拉排行（只拉一次会全是净流入，净流出凑不齐）
     const [a, b] = await Promise.all([jsonpRetry(rankUrl(fs, 1)), jsonpRetry(rankUrl(fs, 0))]);
@@ -489,7 +491,9 @@ async function fetchCycle(force) {
         curList.some(d => d.f12 === state.expanded.bk)) refreshExpanded();
     updEl.textContent = '更新 ' + hhmmss(new Date());
   } catch (e) {
-    if (!state.everFetched && fetchGen === myGen) updEl.textContent = '获取失败，10 秒后重试…';
+    failStreak++;
+    if (!state.everFetched && fetchGen === myGen)
+      updEl.textContent = failStreak >= 3 ? '获取失败，限流退避中（30 秒间隔）…' : '获取失败，10 秒后重试…';
   } finally {
     if (fetchGen === myGen) fetching = false; // 只有最新代负责复位，永不死锁
   }
@@ -1334,9 +1338,13 @@ function loop() {
 /* ================= 刷新调度：10 秒一轮，非交易时段不发请求 ================= */
 const FETCHABLE = ['auction', 'trading'];
 if (!SNAP) {
-  setInterval(() => {
-    if (FETCHABLE.includes(state.phase) || !state.everFetched) fetchCycle();
-  }, 10000);
+  // 自调度刷新：正常 10 秒；连续失败 ≥3 次退避到 30 秒（限流友好）
+  (function scheduleFetch() {
+    setTimeout(async () => {
+      if (FETCHABLE.includes(state.phase) || !state.everFetched) await fetchCycle();
+      scheduleFetch();
+    }, failStreak >= 3 ? 30000 : 10000);
+  })();
   fetchCycle(true); // 首次加载（收盘后即作为当日快照）
   showBdSkeleton(); // 细分模块初始骨架屏（待默认选中后加载）
   document.getElementById('snapBtn').addEventListener('click', saveSnapshot);
