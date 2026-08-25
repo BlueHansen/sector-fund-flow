@@ -293,11 +293,15 @@ function jsonp(url, timeout = 3000) {
   });
 }
 async function jsonpRetry(url, tries = 3) {
-  let lastErr;
+  let lastErr, cur = url;
   for (let i = 0; i < tries; i++) {
     if (i) await new Promise(r => setTimeout(r, 700 * i)); // 退避：等故障突发窗口过去再重试
-    try { return await jsonp(url, 4000); }
-    catch (e) { lastErr = e; }
+    try { return await jsonp(cur, 4000); }
+    catch (e) {
+      lastErr = e;
+      // 域名容灾：push2 被限流/不可达时切东财官方延时镜像 push2delay（收盘后数据一致，盘中可能略滞后）
+      cur = cur.replace('push2.eastmoney.com', 'push2delay.eastmoney.com');
+    }
   }
   throw lastErr;
 }
