@@ -112,12 +112,11 @@
   .bd-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .bd-dcard { background: rgba(255,255,255,.03); border: 1px solid #1c2536; border-radius: 12px;
     padding: 10px 12px; position: relative; min-height: 78px; }
-  .bd-drow { display: flex; align-items: center; gap: 6px; padding-right: 44px; }
+  .bd-drow { display: flex; align-items: center; gap: 6px; }
   .bd-ddot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 6px currentColor; }
   .bd-dname { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bd-dval { font-size: 17px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
   .bd-dtag { font-size: 10px; color: #5f6778; margin-top: 2px; }
-  .bd-link { position: absolute; top: 10px; right: 12px; font-size: 11px; color: #4d9dff; text-decoration: none; }
   .bd-sec { margin-top: 14px; }
   .bd-sec-head { display: flex; align-items: center; gap: 8px; }
   .bd-sec-title { font-size: 13px; font-weight: 700; }
@@ -1250,7 +1249,6 @@ function renderDual() {
       <div class="bd-drow"><span class="bd-ddot" style="background:${color};color:${color}"></span><span class="bd-dname">${esc(sec.name)}</span></div>
       <div class="bd-dval ${pos ? 'up' : 'down'}">${v == null ? '--' : fmtVal(v)}</div>
       <div class="bd-dtag">${tag}</div>
-      <a class="bd-link" href="https://quote.eastmoney.com/bk/90.${sec.bk}.html" target="_blank" rel="noopener">看个股</a>
     </div>`;
   };
   $id('bdDual').innerHTML = card(selSec, '主线 · 当前净额') + card(oppSec, '对侧代表');
