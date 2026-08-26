@@ -145,6 +145,42 @@
     rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%); background-size: 200% 100%;
     animation: bdshine 1.2s infinite; }
   @keyframes bdshine { to { background-position: -200% 0; } }
+
+  /* ===== 自选概念管理 + 细分个股下钻 ===== */
+  .cust-search { display: flex; gap: 8px; margin: 8px 0 2px; }
+  .cust-input { flex: 1; min-width: 0; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px; color: #e6e9f0; font-size: 13px; padding: 8px 10px; font-family: inherit; outline: none; }
+  .cust-input:focus { border-color: rgba(77,157,255,.55); }
+  .cust-add { font-size: 12px; color: #4d9dff; background: rgba(77,157,255,.1); border: 1px solid rgba(77,157,255,.4);
+    border-radius: 8px; padding: 0 14px; cursor: pointer; font-family: inherit; flex: none; }
+  .cust-sug { max-height: 180px; overflow-y: auto; margin-top: 4px; border-radius: 8px;
+    background: rgba(18,23,34,.97); border: 1px solid rgba(255,255,255,.1); display: none; }
+  .cust-sug.on { display: block; }
+  .cust-sug-item { display: flex; justify-content: space-between; padding: 8px 10px; font-size: 12.5px;
+    cursor: pointer; color: #c6ccd8; }
+  .cust-sug-item:active { background: rgba(77,157,255,.12); }
+  .cust-sug-item.has { color: #5f6778; cursor: default; }
+  .cust-del { font-size: 12px; color: #ff7a7a; background: none; border: none; cursor: pointer;
+    font-family: inherit; padding: 4px 6px; flex: none; }
+  .rrow .cust-del { visibility: hidden; }
+  .rrow:hover .cust-del { visibility: visible; }
+  /* 细分个股区 */
+  .bd-stocks { margin-top: 8px; border-top: 1px dashed rgba(255,255,255,.12); padding-top: 6px; }
+  .bd-st-sort { display: flex; gap: 5px; margin-bottom: 4px; }
+  .bd-st-tab { font-size: 10px; line-height: 1; padding: 4px 9px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.13); background: none; color: #8b93a7; cursor: pointer; font-family: inherit; }
+  .bd-st-tab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
+  .bd-st-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px;
+    border-top: 1px solid rgba(255,255,255,.04); }
+  .bd-st-row:first-of-type { border-top: none; }
+  .bd-st-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .bd-st-nm { font-size: 12px; color: #e6e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bd-st-cd { font-size: 9.5px; color: #586074; }
+  .bd-st-sp { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-st-pc { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-st-vl { width: 62px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-st-hint { font-size: 9.5px; color: #586074; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .bd-mcard { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -159,6 +195,7 @@
     <div class="tabs">
       <button class="tab" id="tab-hy" onclick="switchSource('hy')">东财·行业</button>
       <button class="tab" id="tab-gn" onclick="switchSource('gn')">东财·概念</button>
+      <button class="tab" id="tab-custom" onclick="switchSource('custom')">自选概念</button>
       <span class="tab-src" style="color:#5f6778">数据源：东方财富</span>
     </div>
     <div class="tabs2">
@@ -204,10 +241,17 @@
   <div class="card rank-card">
     <div class="rank-head">
       <span class="rk-title">板块资金排行</span>
-      <span class="rtabs">
+      <span class="rtabs" id="rtabs">
         <button class="rtab on" id="rt-in">净流入榜</button>
         <button class="rtab" id="rt-out">净流出榜</button>
       </span>
+    </div>
+    <div id="custManage" style="display:none">
+      <div class="cust-search">
+        <input class="cust-input" id="custInput" placeholder="搜索概念板块（如 CPO、存储、AI应用…）" autocomplete="off">
+        <button class="cust-add" id="custAddBtn">添加</button>
+      </div>
+      <div class="cust-sug" id="custSug"></div>
     </div>
     <div class="sub" id="rankSub">按当日主力净额排序 · 点击板块行展开个股</div>
     <div class="rank-scroll" id="rankScroll">
@@ -236,12 +280,16 @@ const UT = 'fa5fd1943c7b386f172d6893dbfba10b';
 const REDS   = ['#ff4d4f', '#ff6b6b', '#f2303c', '#ff8585', '#e83c50']; // 红=净流入
 const GREENS = ['#00c48c', '#00b578', '#00a86e', '#2ed3a2', '#00936b']; // 绿=净流出
 
-/* ============ 数据源注册表（东财双源：行业 / 概念504个含CPO） ============ */
+/* ============ 数据源注册表（东财双源 + 自选概念） ============ */
 const SOURCES = {
   hy: { label: '东财·行业', fs: 'm:90+t:2', title: '行业板块' },
   gn: { label: '东财·概念', fs: 'm:90+t:3', title: '概念板块' },
+  custom: { label: '自选概念', fs: null, title: '自选概念' },
 };
 const DEFAULT_SOURCE = 'gn'; // 默认概念（含 CPO、液冷服务器等热门概念）
+// 自选概念预置（首次使用自动填入，可增删，存 localStorage 跨会话保留）
+const PRESET_CUSTOM = ['BK1128', 'BK0922', 'BK1138', 'BK0800', 'BK1090', 'BK1064'];
+const PRESET_NAMES = { BK1128: 'CPO概念', BK0922: '数据中心', BK1138: '液冷服务器', BK0800: '人工智能', BK1090: '机器人概念', BK1064: '东数西算' };
 
 // 板块资金排行：po=1 净流入榜 / po=0 净流出榜（必须分两次请求，pz=20 同时供曲线选板块与排行榜）
 const rankUrl = (fs, po) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&np=1&fltt=2&invt=2&fid=f62&fs=${fs}&fields=f12,f14,f3,f62,f184&ut=${UT}&po=${po}`;
@@ -257,6 +305,8 @@ const wlUrl = pn => `https://push2.eastmoney.com/api/qt/clist/get?pn=${pn}&pz=10
 const slistUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/slist/get?np=1&pn=1&pz=50&po=1&fltt=2&invt=2&spt=3&fields=f12,f14,f62,f3&secid=${mkt}.${code}&ut=${UT}`;
 // 批量板块最新主力净额（1 个请求更新全部细分数值）
 const ulistUrl = secids => `https://push2.eastmoney.com/api/qt/ulist.np/get?np=1&fltt=2&invt=2&secids=${secids}&fields=f12,f14,f62&ut=${UT}`;
+// 概念板块成分个股（fid 排序字段：f22 涨速 / f62 主力净额 / f3 涨跌幅）
+const subStockUrl = (bk, fid) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=8&np=1&fltt=2&invt=2&fid=${fid}&fs=b:${bk}+f:!50&fields=f12,f13,f14,f3,f22,f62&ut=${UT}&po=1`;
 
 /* ================= 状态 ================= */
 const state = {
@@ -266,6 +316,7 @@ const state = {
   stockCache: {},                              // bk -> {stocks:[], sparks:{code:pts}, loading, ts}
   mode: 'cum', win: 0,                         // 曲线模式 cum=累计净额 / vel=5分流速；win=0 全天，否则近 N 分钟
   selected: null,                              // 主图选中板块 BK（驱动细分模块）
+  customBks: null,                             // 自选概念 BK 列表（localStorage 持久化）
 };
 let fetching = false;
 let fetchGen = 0;   // 请求代际号：切换数据源 +1，旧代响应全部作废
@@ -356,16 +407,31 @@ const PHASE_INFO = {
 function updateTabs() {
   document.getElementById('tab-hy').classList.toggle('on', state.source === 'hy');
   document.getElementById('tab-gn').classList.toggle('on', state.source === 'gn');
+  document.getElementById('tab-custom').classList.toggle('on', state.source === 'custom');
+  const cust = state.source === 'custom';
+  document.getElementById('custManage').style.display = cust ? '' : 'none';
+  document.getElementById('rtabs').style.display = cust ? 'none' : ''; // 自选模式无流入/流出榜切换
 }
+/* --- 自选概念：localStorage 持久化 --- */
+function loadCustom() {
+  if (state.customBks) return state.customBks;
+  try { state.customBks = JSON.parse(localStorage.getItem('customBks') || 'null'); } catch (e) {}
+  if (!Array.isArray(state.customBks) || !state.customBks.length) state.customBks = [...PRESET_CUSTOM];
+  return state.customBks;
+}
+function saveCustom() { try { localStorage.setItem('customBks', JSON.stringify(loadCustom())); } catch (e) {} }
 function updateSub() {
   const s = SOURCES[state.source];
-  const n = state.total ? `（${state.total} 个）` : '';
+  const cust = state.source === 'custom';
+  const n = cust ? `（自选 ${loadCustom().length} 个）` : (state.total ? `（${state.total} 个）` : '');
   const modeTxt = state.mode === 'vel' ? '5 分钟滚动净流入' : '主力净额累计';
   const winTxt = state.win ? ` · 近 ${state.win} 分钟` : '';
   const snapTxt = SNAP ? ` · 离线快照（采集于 ${hhmmss(new Date(SNAP.ts))}，不可刷新）` : ' · 10 秒刷新';
-  subEl.textContent = `${s.title}${n} · ${modeTxt}（亿元）${winTxt} · 5 净流入 / 5 净流出${snapTxt}`;
+  subEl.textContent = `${s.title}${n} · ${modeTxt}（亿元）${winTxt}${snapTxt}`;
   const rs = document.getElementById('rankSub');
-  if (rs) rs.textContent = `${s.title} · 按当日主力净额排序 · 点击板块行展开个股${SNAP ? '（离线快照，仅显示已采集数据）' : ''}`;
+  if (rs) rs.textContent = cust
+    ? '自选概念 · 下方搜索添加/移除 · 点击板块行展开个股'
+    : `${s.title} · 按当日主力净额排序 · 点击板块行展开个股${SNAP ? '（离线快照，仅显示已采集数据）' : ''}`;
 }
 
 /* ================= 曲线模式 / 时间范围 ================= */
@@ -456,6 +522,43 @@ async function fetchCycle(force) {
   fetching = true;
   try {
     failStreak = 0; // 请求成功重置退避
+    /* --- 自选概念模式：ulist 拉板块净额 → 构造/复用 sectors → 排行榜 = 自选列表 --- */
+    if (mySrc === 'custom') {
+      const bks = loadCustom();
+      if (!bks.length) {
+        state.sectors = []; state.rankIn = []; state.rankOut = [];
+        renderRank(); state.everFetched = true;
+        updEl.textContent = '自选为空，请在下方搜索添加概念';
+        return;
+      }
+      const r = await jsonpRetry(ulistUrl(bks.map(b => '90.' + b).join(',')));
+      if (fetchGen !== myGen) return;
+      const diff = arr(r && r.data && r.data.diff).filter(d => d && d.f12);
+      const byBk = new Map(diff.map(d => [d.f12, d]));
+      const old = new Map(state.sectors.map(s => [s.bk, s]));
+      state.sectors = bks.filter(bk => byBk.has(bk)).map((bk, i) => {
+        const oldSec = old.get(bk);
+        if (oldSec) return oldSec; // 复用：保留曲线与动画状态，不重播
+        const d = byBk.get(bk);
+        return mkSector(d, d.f62 >= 0 ? 1 : -1, i); // 首次按净额方向配色（红涨绿跌）
+      });
+      const custRows = bks.map(bk => byBk.get(bk)).filter(Boolean);
+      state.rankIn = [...custRows].sort((x, y) => (y.f62 || 0) - (x.f62 || 0)); // 自选列表统一按净额降序
+      state.rankOut = state.rankIn;
+      state.everFetched = true; state.locked = true;
+      renderRank();
+      if (!state.selected && state.sectors.length) {
+        state.selected = state.sectors[0].bk;
+        loadBreakdown(state.selected);
+      }
+      await Promise.all(state.sectors.map(s => fetchKline(s, myGen)));
+      if (fetchGen !== myGen) return;
+      renderRank();
+      try { renderDual(); if (cycleCount % 2 === 0) refreshSubKlines(); } catch (e) {}
+      cycleCount++;
+      updEl.textContent = '更新 ' + hhmmss(new Date());
+      return;
+    }
     const fs = SOURCES[mySrc].fs;
     // ① po=1 / po=0 并行拉排行（只拉一次会全是净流入，净流出凑不齐）
     const [a, b] = await Promise.all([jsonpRetry(rankUrl(fs, 1)), jsonpRetry(rankUrl(fs, 0))]);
@@ -778,20 +881,24 @@ function stocksHtml(bk) {
 function renderRank() {
   const box = document.getElementById('rankList');
   if (!box) return;
-  const list = state.rankTab === 'in' ? state.rankIn : state.rankOut;
-  if (!list.length) { box.innerHTML = '<div class="loading">加载中…</div>'; return; }
+  const cust = state.source === 'custom';
+  const list = cust ? state.rankIn : (state.rankTab === 'in' ? state.rankIn : state.rankOut);
+  if (!list.length) { box.innerHTML = `<div class="loading">${cust ? '自选为空 · 用上方搜索添加概念' : '加载中…'}</div>`; return; }
   const chartMap = new Map(state.sectors.map(s => [s.bk, s.color])); // 图中曲线标记
   let html = '';
   list.forEach((d, i) => {
     const val = typeof d.f62 === 'number' ? d.f62 / 1e8 : null;
     const dot = chartMap.has(d.f12) ? `<span class="rdot" style="background:${chartMap.get(d.f12)};color:${chartMap.get(d.f12)}"></span>` : '';
     const exp = state.expanded && state.expanded.bk === d.f12;
+    const pct = typeof d.f3 === 'number' ? d.f3 : null;
+    const pctHtml = cust && pct == null ? '' : `<span class="rpct ${clsOf(pct)}">${pctTxt(pct)}</span>`;
+    const del = cust ? `<button class="cust-del" data-del="${esc(d.f12)}" title="移除自选">✕</button>` : '<span class="chev">▶</span>';
     html += `<div class="rrow${exp ? ' exp' : ''}" data-bk="${esc(d.f12)}">
-      <span class="rk${i < 3 ? ' top3' : ''}">${i + 1}</span>
+      <span class="rk${!cust && i < 3 ? ' top3' : ''}">${i + 1}</span>
       <span class="rgrow"><span class="rname">${esc(d.f14 || d.f12)}</span>${dot}</span>
-      <span class="rpct ${clsOf(d.f3)}">${pctTxt(typeof d.f3 === 'number' ? d.f3 : null)}</span>
+      ${pctHtml}
       <span class="rval ${clsOf(val)}">${val == null ? '--' : fmtVal(val)}</span>
-      <span class="chev">▶</span>
+      ${del}
     </div>`;
     if (exp) html += stocksHtml(d.f12);
   });
@@ -896,11 +1003,66 @@ function setRankTab(t) {
   document.getElementById('rt-out').classList.toggle('on', t === 'out');
   renderRank();
 }
+
+/* --- 自选概念搜索建议（白名单过滤，点击添加） --- */
+const custInput = document.getElementById('custInput');
+const custSug = document.getElementById('custSug');
+custInput.addEventListener('focus', () => { ensureWhitelist().catch(() => {}); renderCustSug(); });
+custInput.addEventListener('input', () => renderCustSug());
+custInput.addEventListener('blur', () => setTimeout(() => custSug.classList.remove('on'), 200));
+function renderCustSug() {
+  const q = custInput.value.trim();
+  if (!q || !BD.wl) { custSug.classList.remove('on'); return; }
+  const has = new Set(loadCustom());
+  const hits = [...BD.wl.entries()].filter(([bk, name]) =>
+    name.toLowerCase().includes(q.toLowerCase()) || bk.toLowerCase() === q.toLowerCase()).slice(0, 10);
+  if (!hits.length) { custSug.classList.remove('on'); return; }
+  custSug.innerHTML = hits.map(([bk, name]) =>
+    `<div class="cust-sug-item${has.has(bk) ? ' has' : ''}" data-add="${bk}"><span>${esc(name)}</span><span style="color:#5f6778;font-size:10px">${has.has(bk) ? '已添加' : bk}</span></div>`).join('');
+  custSug.classList.add('on');
+}
+custSug.addEventListener('click', ev => {
+  const it = ev.target.closest('[data-add]');
+  if (!it || it.classList.contains('has')) return;
+  addCustom(it.getAttribute('data-add'));
+});
+document.getElementById('custAddBtn').addEventListener('click', () => {
+  const q = custInput.value.trim();
+  if (!q || !BD.wl) return;
+  const hit = [...BD.wl.entries()].find(([bk, name]) =>
+    name.toLowerCase().includes(q.toLowerCase()) || bk.toLowerCase() === q.toLowerCase());
+  if (hit) { addCustom(hit[0]); return; }
+  custInput.focus();
+});
+function addCustom(bk) {
+  loadCustom();
+  if (state.customBks.includes(bk) || state.customBks.length >= 12) return; // 上限 12 条曲线可读性最优
+  state.customBks.push(bk);
+  saveCustom();
+  custInput.value = '';
+  custSug.classList.remove('on');
+  updateSub();
+  fetchCycle(true); // 拉新板块曲线（已有板块复用，不重播动画）
+}
 document.getElementById('rt-in').addEventListener('click', () => setRankTab('in'));
 document.getElementById('rt-out').addEventListener('click', () => setRankTab('out'));
 document.getElementById('rankList').addEventListener('click', ev => {
   if (ev.target.closest('[data-retry]')) { // "加载失败"点击重试
     if (state.expanded) refreshExpanded();
+    return;
+  }
+  const delBtn = ev.target.closest('[data-del]'); // 自选移除
+  if (delBtn) {
+    ev.stopPropagation();
+    const bk = delBtn.getAttribute('data-del');
+    loadCustom();
+    state.customBks = state.customBks.filter(b => b !== bk);
+    saveCustom();
+    state.sectors = state.sectors.filter(s => s.bk !== bk);
+    if (state.selected === bk) { state.selected = state.sectors.length ? state.sectors[0].bk : null;
+      if (state.selected) loadBreakdown(state.selected); else { BD.gen++; BD.subs = []; showBdSkeleton(); } }
+    updateSub();
+    fetchCycle(true);
     return;
   }
   const row = ev.target.closest('.rrow');
@@ -1058,7 +1220,8 @@ async function loadBreakdown(bk) {
       return;
     }
     BD.subs = base.subs.map(s => ({ bk: s.bk, name: s.name, cnt: s.cnt, points: [],
-      lastV: typeof s.f62 === 'number' ? s.f62 / 1e8 : null, d13: null }));
+      lastV: typeof s.f62 === 'number' ? s.f62 / 1e8 : null, d13: null,
+      stOpen: false, stSort: 'speed', stocks: null, stTs: 0, stLoading: false, stError: false }));
     renderDual();
     buildBdGrid();
     refreshSubKlines(); // 细分分时（含加速值与迷你走势）
@@ -1093,7 +1256,7 @@ function renderDual() {
   $id('bdDual').innerHTML = card(selSec, '主线 · 当前净额') + card(oppSec, '对侧代表');
 }
 
-/* --- 细分迷你走势卡：折叠 2 个 / 展开 16 个（2 列网格），指示器 n/16 --- */
+/* --- 细分迷你走势卡：折叠 2 个 / 展开 16 个（2 列网格），指示器 n/16；卡片点击下钻个股 --- */
 function buildBdGrid() {
   if (!BD.subs.length) return;
   const shown = BD.expanded ? BD.subs : BD.subs.slice(0, 2);
@@ -1101,12 +1264,83 @@ function buildBdGrid() {
     <div class="bd-mcard" data-bk="${esc(s.bk)}">
       <div class="bd-mrow"><span class="bd-mname" title="${esc(s.name)}">${esc(s.name)}</span><span class="bd-mval ${clsOf(s.lastV)}">${s.lastV == null ? '--' : fmtVal(s.lastV)}</span></div>
       <canvas class="bd-spark"></canvas>
+      <div class="bd-stocks" style="${s.stOpen ? '' : 'display:none'}"></div>
     </div>`).join('');
   $id('bdCount').textContent = `${shown.length}/${BD.subs.length}`;
   $id('bdExpand').textContent = BD.expanded ? '收起' : '展开';
   drawMiniSparks();
+  BD.subs.filter(s => s.stOpen).forEach(renderSubStocks);
 }
 $id('bdExpand').addEventListener('click', () => { BD.expanded = !BD.expanded; buildBdGrid(); });
+$id('bdGrid').addEventListener('click', ev => {
+  const tab = ev.target.closest('[data-stsort]');
+  if (tab) { // 排序切换
+    ev.stopPropagation();
+    const card = tab.closest('.bd-mcard');
+    const sub = BD.subs.find(s => s.bk === card.getAttribute('data-bk'));
+    if (sub && sub.stSort !== tab.getAttribute('data-stsort')) {
+      sub.stSort = tab.getAttribute('data-stsort');
+      sub.stocks = null; // 换排序重新拉
+      fetchSubStocks(sub);
+    }
+    return;
+  }
+  const card = ev.target.closest('.bd-mcard');
+  if (!card) return;
+  const sub = BD.subs.find(s => s.bk === card.getAttribute('data-bk'));
+  if (!sub) return;
+  sub.stOpen = !sub.stOpen;
+  if (sub.stOpen) {
+    if (!sub.stocks) fetchSubStocks(sub);
+    renderSubStocks(sub);
+  } else {
+    card.querySelector('.bd-stocks').style.display = 'none';
+  }
+});
+
+/* --- 细分个股：涨速 / 主力净额 / 涨跌幅 三种排序（fid 映射东财排序字段） --- */
+const ST_FID = { speed: 'f22', fund: 'f62', pct: 'f3' };
+const ST_LABEL = { speed: '涨速', fund: '主力净额', pct: '涨跌幅' };
+async function fetchSubStocks(sub) {
+  const gen = BD.gen;
+  sub.stLoading = true; sub.stError = false;
+  renderSubStocks(sub);
+  try {
+    const r = await jsonpRetry(subStockUrl(sub.bk, ST_FID[sub.stSort] || 'f22'));
+    if (BD.gen !== gen) return;
+    sub.stocks = arr(r && r.data && r.data.diff).filter(d => d && d.f12).map(d => ({
+      code: String(d.f12), mkt: d.f13, name: d.f14 || d.f12,
+      speed: typeof d.f22 === 'number' ? d.f22 : null,
+      pct: typeof d.f3 === 'number' ? d.f3 : null,
+      val: typeof d.f62 === 'number' ? d.f62 / 1e8 : null,
+    }));
+    sub.stTs = Date.now();
+  } catch (e) { sub.stError = true; }
+  sub.stLoading = false;
+  renderSubStocks(sub);
+}
+function renderSubStocks(sub) {
+  const card = document.querySelector(`#bdGrid .bd-mcard[data-bk="${sub.bk}"]`);
+  if (!card) return;
+  const box = card.querySelector('.bd-stocks');
+  if (!sub.stOpen) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const tabs = ['speed', 'fund', 'pct'].map(k =>
+    `<button class="bd-st-tab${sub.stSort === k ? ' on' : ''}" data-stsort="${k}">${ST_LABEL[k]}</button>`).join('');
+  let body;
+  if (sub.stLoading) body = '<div class="loading">加载个股…</div>';
+  else if (sub.stError) body = '<div class="loading" style="color:#ff7a7a">加载失败 · 点击重试</div>';
+  else if (!sub.stocks || !sub.stocks.length) body = '<div class="loading">暂无数据</div>';
+  else body = sub.stocks.map(s => `
+    <div class="bd-st-row">
+      <span class="bd-st-name"><span class="bd-st-nm">${esc(s.name)}</span><span class="bd-st-cd">${esc(s.code)}</span></span>
+      <span class="bd-st-sp ${clsOf(s.speed)}">${s.speed == null ? '--' : (s.speed > 0 ? '+' : '') + s.speed.toFixed(2) + '%'}</span>
+      <span class="bd-st-pc ${clsOf(s.pct)}">${pctTxt(s.pct)}</span>
+      <span class="bd-st-vl ${clsOf(s.val)}">${s.val == null ? '--' : fmtVal(s.val)}</span>
+    </div>`).join('');
+  box.innerHTML = `<div class="bd-st-hint"><span>个股 TOP8</span><span>涨速 / 涨幅 / 净额(亿)</span></div>
+    <div class="bd-st-sort">${tabs}</div>${body}`;
+}
 
 /* --- 近13分钟加速榜：Δ 降序 TOP3 流入 / 末3 流出·回落 --- */
 function renderAccel() {
@@ -1180,6 +1414,9 @@ async function refreshSubKlines() {
     }));
     if (BD.gen !== gen) return;
     renderAccel(); updateCardVals(); drawMiniSparks();
+    // 展开中的个股列表同步刷新（60s 缓存过期才重拉）
+    for (const sub of BD.subs)
+      if (sub.stOpen && (!sub.stocks || Date.now() - (sub.stTs || 0) > 60000)) fetchSubStocks(sub);
   } finally { BD.klineBusy = false; }
 }
 
@@ -1236,6 +1473,7 @@ function collectSnapshot() {
   return {
     ts: Date.now(),
     source: state.source, total: state.total, selected: state.selected, rankTab: state.rankTab,
+    customBks: loadCustom(),
     sectors: state.sectors.map(s => ({ bk: s.bk, name: s.name, dir: s.dir, color: s.color,
       points: s.points, vel: s.vel })),
     rankIn: state.rankIn, rankOut: state.rankOut,
@@ -1281,6 +1519,7 @@ function saveSnapshot() {
 function hydrateSnapshot() {
   const S = SNAP;
   state.source = S.source || 'gn';
+  if (Array.isArray(S.customBks) && S.customBks.length) state.customBks = [...S.customBks];
   state.total = S.total || 0;
   state.selected = S.selected || null;
   state.rankTab = S.rankTab || 'in';
