@@ -180,6 +180,72 @@
   .bd-st-vl { width: 62px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
   .bd-st-hint { font-size: 9.5px; color: #586074; display: flex; justify-content: space-between; margin-bottom: 2px; }
   .bd-mcard { cursor: pointer; }
+
+  /* ===== 全市场ETF资金净额模块 ===== */
+  .etf-card { margin-top: 12px; padding-bottom: 12px; }
+  .etf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .etf-title { font-size: 15px; font-weight: 700; }
+  .etf-badge { font-size: 10px; line-height: 1; padding: 4px 8px; border-radius: 999px; flex: none; }
+  .etf-badge.ok { color: #4d9dff; border: 1px solid rgba(77,157,255,.4); background: rgba(77,157,255,.08); }
+  .etf-badge.miss { color: #f0b34e; border: 1px solid rgba(240,179,78,.4); background: rgba(240,179,78,.08); }
+  .etf-date { font-size: 10px; color: #5f6778; flex: none; font-variant-numeric: tabular-nums; }
+  .etf-refresh { margin-left: auto; font-size: 11px; color: #4d9dff; background: none;
+    border: 1px solid rgba(77,157,255,.35); border-radius: 999px; padding: 4px 12px;
+    cursor: pointer; font-family: inherit; flex: none; }
+  .etf-desc { font-size: 12px; color: #8b93a7; margin-top: 3px; }
+  .etf-tabs { display: flex; gap: 6px; margin: 10px 0 4px; }
+  .etf-tab { font-size: 11px; line-height: 1; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
+    color: #98a0b3; cursor: pointer; font-family: inherit; transition: all .18s ease; }
+  .etf-tab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
+  .etf-sec-h { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .etf-sec-t { font-size: 13px; font-weight: 700; }
+  .etf-sec-note { font-size: 10px; color: #5f6778; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .etf-sub { font-size: 11px; color: #5f6778; margin: 2px 0 6px; }
+  .etf-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  @media (min-width: 560px) { .etf-mgrid { grid-template-columns: repeat(3, 1fr); } }
+  .etf-mcell { background: rgba(255,255,255,.03); border: 1px solid #1c2536; border-radius: 12px; padding: 10px 12px; min-height: 86px; }
+  .etf-mname { font-size: 11px; color: #8b93a7; }
+  .etf-mval { font-size: 19px; font-weight: 700; margin-top: 5px; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .etf-mval .u { font-size: 12px; font-weight: 400; color: #98a0b3; }
+  .etf-mnote { font-size: 10px; color: #5f6778; margin-top: 3px; }
+  .etf-anc { display: flex; gap: 10px; background: rgba(255,255,255,.03); border: 1px solid #1c2536;
+    border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+  .etf-anc-l { flex: 1; min-width: 0; }
+  .etf-anc-tag { font-size: 10px; color: #5f6778; }
+  .etf-anc-name { font-size: 14px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .etf-anc-code { font-size: 10px; color: #586074; font-variant-numeric: tabular-nums; }
+  .etf-anc-r { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .etf-anc-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .etf-anc-lock { font-size: 10px; color: #8b93a7; font-variant-numeric: tabular-nums; }
+  .etf-anc-btns { display: flex; gap: 6px; }
+  .etf-btn { font-size: 10.5px; line-height: 1; padding: 5px 9px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14); background: none; color: #98a0b3;
+    cursor: pointer; font-family: inherit; flex: none; }
+  .etf-btn.on { color: #ffd2d2; border-color: rgba(255,77,79,.5); background: rgba(255,77,79,.12); }
+  .etf-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px;
+    border-bottom: 1px solid rgba(255,255,255,.05); }
+  .etf-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .etf-name b { font-size: 12.5px; color: #e6e9f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .etf-name b.stale { color: #586074; }
+  .etf-name i { font-size: 10px; color: #586074; font-style: normal; font-variant-numeric: tabular-nums; }
+  .etf-val { width: 84px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; font-size: 12px; }
+  .etf-d5 { width: 74px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; flex: none; color: #8b93a7; }
+  .etf-list { max-height: 420px; overflow-y: auto; margin-top: 6px; -webkit-overflow-scrolling: touch; }
+  .etf-empty { font-size: 12px; color: #8b93a7; text-align: center; padding: 18px 0; }
+  .etf-cv { width: 100%; height: 240px; display: block; margin-top: 8px; }
+  .etf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .etf-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);
+    color: #c6ccd8; display: inline-flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+  .etf-chip .x { color: #ff7a7a; cursor: pointer; }
+  .etf-seg { display: flex; gap: 6px; }
+  .etf-search { flex: 1; min-width: 120px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px; color: #e6e9f0; font-size: 12px; padding: 6px 10px; font-family: inherit; outline: none; }
+  .etf-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: rgba(20,26,38,.95); border: 1px solid rgba(255,255,255,.15); color: #e6e9f0;
+    font-size: 12px; padding: 8px 16px; border-radius: 999px; opacity: 0; transition: all .25s;
+    z-index: 99; pointer-events: none; }
+  .etf-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -235,6 +301,23 @@
       <div class="bd-sec-head"><span class="bd-sec-title">细分迷你走势</span><span class="bd-count" id="bdCount">…</span><button class="bd-expand" id="bdExpand">展开</button></div>
       <div class="bd-grid" id="bdGrid"></div>
     </div>
+  </div>
+
+  <div class="card etf-card">
+    <div class="etf-head">
+      <span class="etf-title">全市场ETF资金净额</span>
+      <span class="etf-badge ok" id="etfBadge">…</span>
+      <span class="etf-date" id="etfDate"></span>
+      <button class="etf-refresh" id="etfRefresh">刷新</button>
+    </div>
+    <div class="etf-desc">行情主力大单净买卖额 · 非申购赎回口径 · 独立于行业/概念板块资金流</div>
+    <div class="etf-tabs">
+      <button class="etf-tab on" id="etfTabOv">总览</button>
+      <button class="etf-tab" id="etfTabTd">走势</button>
+      <button class="etf-tab" id="etfTabRk">排行</button>
+      <button class="etf-tab" id="etfTabWa">观察</button>
+    </div>
+    <div id="etfBody"></div>
   </div>
 
   <div class="card rank-card">
@@ -1536,6 +1619,490 @@ function hydrateSnapshot() {
   updEl.textContent = '离线快照 · 采集于 ' + hhmmss(new Date(S.ts));
 }
 
+/* ================= 全市场ETF资金净额模块 ================= */
+// 全市场 ETF 主力净额（fs=四类场内基金，实测 total≈1584；pz 无论多大单页固定 100 条 → 必须翻页）
+const etfScanUrl = pn => `https://push2.eastmoney.com/api/qt/clist/get?pn=${pn}&pz=100&np=1&fltt=2&invt=2&fid=f62&po=1&fs=b:MK0021,b:MK0022,b:MK0023,b:MK0024&fields=f12,f13,f14,f62&ut=${UT}`;
+// ETF 分钟级资金 kline（与主图同接口，secid = 市场.代码）
+const etfKlineUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/stock/fflow/kline/get?lmt=0&klt=1&secid=${mkt}.${code}&fields1=f1,f2,f3,f7&fields2=f51,f52&ut=${UT}`;
+
+const ETF = {
+  tab: 'ov',                                  // ov 总览 / td 走势 / rk 排行 / wa 观察
+  map: new Map(),                             // code -> {name, mkt, f62(元|null)}
+  scanTs: 0, scanning: false, scanErr: false,
+  expected: null,                             // {date, n} 当日应有名单数（首次成功扫描的 total）
+  lock: null,                                 // {date, lockTime, in:{code,name,lockVal,lastV}, out:{...}}
+  watch: [], trend: [],                       // 关注 / 走势 code 列表（localStorage）
+  hist: {},                                   // code -> [{t,v}] 30s×30 条滚动（锚点+关注，供5分钟变化）
+  trendPts: {},                               // code -> 分钟分时（走势 Tab）
+  rkTab: 'in', rkQuery: '', klineBusy: false,
+};
+
+/* --- localStorage（键按交易日失效的带 date 字段校验） --- */
+function etfStore(k, v) { try { localStorage.setItem('etf_' + k, JSON.stringify(v)); } catch (e) {} }
+function etfLoad(k, d) { try { const v = JSON.parse(localStorage.getItem('etf_' + k)); return v == null ? d : v; } catch (e) { return d; } }
+function etfInitState() {
+  const day = todayStr();
+  ETF.expected = etfLoad('expected', null);
+  if (!ETF.expected || ETF.expected.date !== day) ETF.expected = null;      // 跨日重置
+  ETF.lock = etfLoad('lock', null);
+  if (!ETF.lock || ETF.lock.date !== day) ETF.lock = null;                  // 跨日自动重锁
+  ETF.watch = (etfLoad('watch', []) || []).filter(x => typeof x === 'string').slice(0, 30);
+  ETF.trend = (etfLoad('trend', []) || []).filter(x => typeof x === 'string').slice(0, 6);
+}
+const etfDateTxt = () => todayStr().replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+
+/* --- 全量扫描：翻页拉全（≤4 并发分批），单页重试后仍失败放弃该页 --- */
+async function etfScan(manual) {
+  if (SNAP || ETF.scanning) return;
+  ETF.scanning = true;
+  const btn = $id('etfRefresh');
+  if (manual && btn) btn.textContent = '扫描中…';
+  try {
+    const r1 = await jsonpRetry(etfScanUrl(1));
+    const d1 = r1 && r1.data;
+    const total = (d1 && d1.total) || 0;
+    const pages = Math.max(1, Math.ceil(total / 100));
+    const results = [d1];
+    for (let pn = 2; pn <= pages; pn += 4) {          // ≤4 并发分批拉余下页
+      const batch = [];
+      for (let p = pn; p < Math.min(pn + 4, pages + 1); p++) batch.push(p);
+      await Promise.all(batch.map(async p => {
+        try { const r = await jsonpRetry(etfScanUrl(p)); results[p - 1] = r && r.data; }
+        catch (e) { /* 该页放弃，按成功部分统计 */ }
+      }));
+    }
+    const map = new Map();
+    for (const d of results) for (const it of arr(d && d.diff)) {
+      if (!it || it.f12 == null) continue;
+      map.set(String(it.f12), { name: it.f14 || String(it.f12),
+        mkt: it.f13 != null ? it.f13 : (String(it.f12).charAt(0) === '5' ? 1 : 0),
+        f62: typeof it.f62 === 'number' ? it.f62 : null });
+    }
+    if (!map.size) throw new Error('empty scan');
+    ETF.map = map; ETF.scanTs = Date.now(); ETF.scanErr = false;
+    if (total && (!ETF.expected || ETF.expected.date !== todayStr())) {
+      ETF.expected = { date: todayStr(), n: total };
+      etfStore('expected', ETF.expected);
+    }
+    if (!ETF.lock && ETF.expected && map.size >= ETF.expected.n) etfLockNow(); // 首次完整快照锁定
+    etfPushHist();
+    etfRender();
+  } catch (e) {
+    ETF.scanErr = true;
+    etfRender();
+  } finally {
+    ETF.scanning = false;
+    if (btn) btn.textContent = '刷新';
+  }
+}
+
+/* --- 锚点锁定 / 重新锁定 --- */
+function etfLockNow() {
+  const list = [...ETF.map.entries()].filter(([, v]) => typeof v.f62 === 'number');
+  if (!list.length) return;
+  list.sort((a, b) => b[1].f62 - a[1].f62);
+  const mk = e => ({ code: e[0], name: e[1].name, lockVal: e[1].f62 / 1e8, lastV: e[1].f62 / 1e8 });
+  ETF.lock = { date: todayStr(), lockTime: Date.now(), in: mk(list[0]), out: mk(list[list.length - 1]) };
+  etfStore('lock', ETF.lock);
+  ETF.hist = {}; // 重新锁定：历史清空，5分钟变化重新积累
+}
+
+/* --- 历史推进（锚点 + 关注，30s 一格滚动 30 条） --- */
+function etfPushHist() {
+  const codes = new Set([
+    ...(ETF.lock ? [ETF.lock.in.code, ETF.lock.out.code] : []),
+    ...ETF.watch,
+  ]);
+  const now = Date.now();
+  for (const c of codes) {
+    const v = ETF.map.get(c);
+    if (!v || typeof v.f62 !== 'number') continue;
+    (ETF.hist[c] = ETF.hist[c] || []).push({ t: now, v: v.f62 / 1e8 });
+    if (ETF.hist[c].length > 30) ETF.hist[c].shift();
+  }
+  if (ETF.lock) { // 锚点 lastV 持久化（停牌时显示最后有效值）
+    for (const k of ['in', 'out']) {
+      const v = ETF.map.get(ETF.lock[k].code);
+      if (v && typeof v.f62 === 'number') ETF.lock[k].lastV = v.f62 / 1e8;
+    }
+    etfStore('lock', ETF.lock);
+  }
+}
+
+/* --- 5 分钟变化 = 当前 − 5 分钟前快照值（历史不足 5 分钟显示暂无） --- */
+function etfDelta5(code) {
+  const cur = ETF.map.get(code);
+  const h = ETF.hist[code];
+  if (!cur || typeof cur.f62 !== 'number' || !h || !h.length) return null;
+  const now = ETF.scanTs || Date.now();
+  if (now - h[0].t < 300000) return null;
+  const target = now - 300000;
+  let best = h[0];
+  for (const p of h) if (Math.abs(p.t - target) < Math.abs(best.t - target)) best = p;
+  return cur.f62 / 1e8 - best.v;
+}
+
+/* --- 六指标统计 --- */
+function etfStats() {
+  const s = { got: ETF.map.size, exp: ETF.expected ? ETF.expected.n : 0,
+    in: 0, out: 0, sum: 0, maxIn: null, maxOut: null, top5In: null, top5Out: null };
+  const pos = [], neg = [];
+  for (const [code, v] of ETF.map) {
+    if (typeof v.f62 !== 'number') continue; // f62=0/缺失：计入返回数，不参与统计
+    const yi = v.f62 / 1e8;
+    s.sum += yi;
+    if (yi > 0) { s.in++; pos.push({ code, name: v.name, v: yi }); }
+    else if (yi < 0) { s.out++; neg.push({ code, name: v.name, v: yi }); }
+  }
+  pos.sort((a, b) => b.v - a.v); neg.sort((a, b) => a.v - b.v);
+  if (pos.length) {
+    s.maxIn = pos[0];
+    const tot = pos.reduce((x, y) => x + y.v, 0);
+    if (tot > 0) s.top5In = pos.slice(0, 5).reduce((x, y) => x + y.v, 0) / tot;
+  }
+  if (neg.length) {
+    s.maxOut = neg[0];
+    const tot = Math.abs(neg.reduce((x, y) => x + y.v, 0));
+    if (tot > 0) s.top5Out = Math.abs(neg.slice(0, 5).reduce((x, y) => x + y.v, 0)) / tot;
+  }
+  return s;
+}
+
+/* --- 总览渲染 --- */
+function etfCell(name, val, note) {
+  return `<div class="etf-mcell"><div class="etf-mname">${name}</div><div class="etf-mval">${val}</div><div class="etf-mnote">${note}</div></div>`;
+}
+function etfRenderOv() {
+  const s = etfStats();
+  const ratio = s.in + s.out ? Math.round(s.in / (s.in + s.out) * 100) : null;
+  const cov = `<span class="up">${s.got}</span><span class="u">/${s.exp || '…'}</span>`;
+  const breadth = `<span class="up">${s.in}↑</span> <span class="down">${s.out}↓</span>`;
+  const maxIn = s.maxIn ? `<span class="up">${esc(s.maxIn.name)}</span>` : '--';
+  const maxOut = s.maxOut ? `<span class="down">${esc(s.maxOut.name)}</span>` : '--';
+  const pct = v => v == null ? '--' : Math.round(v * 100) + '%';
+  let html = `
+    <div class="etf-sec-h"><span class="etf-sec-t">ETF资金决策摘要</span>
+      <span class="etf-sec-note">每30秒更新${ETF.scanTs ? ' · ' + hhmmss(new Date(ETF.scanTs)) : ''}</span></div>
+    <div class="etf-sub">全量覆盖、资金广度与强弱锚点统一观察</div>
+    <div class="etf-mgrid">
+      ${etfCell('全量覆盖', cov, ETF.scanErr ? '扫描失败，等待自愈' : (s.exp && s.got < s.exp ? `缺失 ${s.exp - s.got} 只` : '名单全量校验通过'))}
+      ${etfCell('资金广度', breadth, ratio == null ? '--' : `流入占比 ${ratio}%`)}
+      ${etfCell('主力净额合计', `<span class="${clsOf(s.sum)}">${fmtVal(s.sum)}</span>`, '二级市场大单口径')}
+      ${etfCell('最强流入', maxIn, s.maxIn ? `<span class="up">${fmtVal(s.maxIn.v)}</span>` : '--')}
+      ${etfCell('最强流出', maxOut, s.maxOut ? `<span class="down">${fmtVal(s.maxOut.v)}</span>` : '--')}
+      ${etfCell('Top5集中度', `${pct(s.top5In)} <span class="u">/</span> ${pct(s.top5Out)}`, '流入 / 流出')}
+    </div>
+    <div class="etf-sec-h"><span class="etf-sec-t">当日强弱锚点</span>
+      <button class="etf-btn" data-etfrelock="1">重新锁定</button></div>
+    <div class="etf-sub">${ETF.lock
+      ? `本机首次完整快照 ${hhmmss(new Date(ETF.lock.lockTime))} 锁定名称，数值继续实时更新`
+      : '等待当日首次完整快照后自动锁定最强流入/流出'}</div>`;
+  html += etfAnchorHtml('in') + etfAnchorHtml('out');
+  $id('etfBody').innerHTML = html;
+}
+function etfAnchorHtml(k) {
+  const a = ETF.lock && ETF.lock[k];
+  if (!a) return `<div class="etf-anc"><div class="etf-empty" style="padding:10px 0">${ETF.scanErr ? '扫描失败 · 点击右上「刷新」重试' : '等待锁定…'}</div></div>`;
+  const cur = ETF.map.get(a.code);
+  const has = cur && typeof cur.f62 === 'number';
+  const curV = has ? cur.f62 / 1e8 : (a.lastV != null ? a.lastV : a.lockVal);
+  const rel = curV - a.lockVal;
+  const d5 = etfDelta5(a.code);
+  const inTrend = ETF.trend.includes(a.code);
+  const watched = ETF.watch.includes(a.code);
+  return `<div class="etf-anc">
+    <div class="etf-anc-l">
+      <div class="etf-anc-tag">${k === 'in' ? '强流入锚点' : '强流出锚点'}${has ? '' : ' · 数据缺失'}</div>
+      <div class="etf-anc-name">${esc(a.name)}</div>
+      <div class="etf-anc-code">${esc(a.code)}</div>
+    </div>
+    <div class="etf-anc-r">
+      <div class="etf-anc-val ${clsOf(curV)}">${fmtVal(curV)}</div>
+      <div class="etf-anc-lock">锁定 ${fmtVal(a.lockVal)} · 相对锁定 <span class="${clsOf(rel)}">${fmtVal(rel)}</span> · 5分钟 ${d5 == null ? '暂无' : `<span class="${clsOf(d5)}">${fmtVal(d5)}</span>`}</div>
+      <div class="etf-anc-btns">
+        <button class="etf-btn${inTrend ? ' on' : ''}" data-etftrend="${esc(a.code)}">${inTrend ? '移出走势' : '加入走势'}</button>
+        <button class="etf-btn${watched ? ' on' : ''}" data-etfwatch="${esc(a.code)}">${watched ? '已关注' : '关注'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* --- 走势 Tab：复用主图口径（红涨绿跌、0轴、午休压缩、端点标签防重叠） --- */
+function etfRenderTd() {
+  const chips = ETF.trend.map(code => {
+    const info = ETF.map.get(code);
+    const pts = ETF.trendPts[code] || [];
+    const v = pts.length ? pts[pts.length - 1].v : null;
+    return `<span class="etf-chip">${esc(info ? info.name : code)} <span class="${clsOf(v)}">${v == null ? '--' : fmtVal(v)}</span><span class="x" data-etftrend="${esc(code)}">✕</span></span>`;
+  }).join('');
+  $id('etfBody').innerHTML = `
+    <div class="etf-sec-h"><span class="etf-sec-t">ETF分钟资金走势</span>
+      <span class="etf-sec-note">10 秒刷新 · 最多 6 条</span></div>
+    ${ETF.trend.length ? '<canvas id="etfCv" class="etf-cv"></canvas><div class="etf-chips">' + chips + '</div>'
+      : '<div class="etf-empty">在总览锚点或排行里点「加入走势」</div>'}`;
+  etfDraw();
+}
+function etfDraw() {
+  const cv = $id('etfCv');
+  if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 240;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const c2 = cv.getContext('2d');
+  c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c2.clearRect(0, 0, W, H);
+  const plotL = 40, plotR = W - 10, plotT = 12, plotB = H - 20;
+  const zeroY = plotT + (plotB - plotT) * 0.35;      // 双段刻度与主图一致
+  let vMax = 0.1, vMin = -0.1;
+  const series = ETF.trend.map(code => ({ code, pts: ETF.trendPts[code] || [] }));
+  for (const { pts } of series) for (const p of pts) {
+    if (p.v > vMax) vMax = p.v;
+    if (p.v < vMin) vMin = p.v;
+  }
+  const sc = { vMax, vMin };
+  const X = m => plotL + (m / TOTAL_MIN) * (plotR - plotL);
+  const Y = v => Math.max(plotT, Math.min(plotB, v >= 0
+    ? zeroY - (v / sc.vMax) * (plotB - plotT) * 0.35
+    : zeroY + (-v / -sc.vMin) * (plotB - plotT) * 0.65));
+  // Y 网格
+  c2.font = '10px system-ui, sans-serif';
+  c2.textAlign = 'right'; c2.textBaseline = 'middle';
+  const hLine = (v, strong) => {
+    const y = Y(v);
+    c2.strokeStyle = strong ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.07)';
+    c2.lineWidth = strong ? 1.5 : 1;
+    c2.beginPath(); c2.moveTo(plotL, y); c2.lineTo(plotR, y); c2.stroke();
+    c2.fillStyle = 'rgba(255,255,255,.4)';
+    c2.fillText((v > 0 ? '+' : '') + fmtTick(v), plotL - 6, y);
+  };
+  const ps = niceStep(sc.vMax / 2);
+  for (let i = 1; i * ps <= sc.vMax * 1.0001; i++) hLine(i * ps, false);
+  const ns = niceStep(-sc.vMin / 3);
+  for (let i = 1; i * ns <= -sc.vMin * 1.0001; i++) hLine(-i * ns, false);
+  hLine(0, true);
+  // 午休虚线 + X 轴
+  c2.save();
+  c2.setLineDash([4, 4]);
+  c2.strokeStyle = 'rgba(255,255,255,.22)';
+  c2.beginPath(); c2.moveTo(X(120), plotT); c2.lineTo(X(120), plotB); c2.stroke();
+  c2.restore();
+  c2.fillStyle = 'rgba(255,255,255,.38)'; c2.textBaseline = 'top';
+  c2.textAlign = 'left'; c2.fillText('09:30', plotL, plotB + 5);
+  c2.textAlign = 'center'; c2.fillText('11:30/13:00', X(120), plotB + 5);
+  c2.textAlign = 'right'; c2.fillText('15:00', plotR, plotB + 5);
+  // 曲线（红涨绿跌配色，色系内区分）
+  const labels = [];
+  series.forEach(({ code, pts }, i) => {
+    if (!pts.length) return;
+    const info = ETF.map.get(code);
+    const lastV = pts[pts.length - 1].v;
+    const color = lastV >= 0 ? REDS[i % 5] : GREENS[i % 5];
+    c2.strokeStyle = color; c2.lineWidth = 1.8;
+    c2.lineJoin = 'round'; c2.lineCap = 'round';
+    c2.beginPath();
+    pts.forEach((p, j) => j ? c2.lineTo(X(p.m), Y(p.v)) : c2.moveTo(X(p.m), Y(p.v)));
+    c2.stroke();
+    labels.push({ name: info ? info.name : code, v: lastV, color,
+      ex: X(pts[pts.length - 1].m), ey: Y(lastV) });
+  });
+  // 端点标签（推开防重叠，简化自主图）
+  c2.font = '11px system-ui, sans-serif';
+  c2.textBaseline = 'middle'; c2.textAlign = 'left';
+  labels.sort((a, b) => a.ey - b.ey);
+  const gap = 15;
+  labels.forEach(L => L.ly = L.ey);
+  for (let i = 1; i < labels.length; i++)
+    if (labels[i].ly < labels[i - 1].ly + gap) labels[i].ly = labels[i - 1].ly + gap;
+  if (labels.length && labels[labels.length - 1].ly > plotB - 2) {
+    labels[labels.length - 1].ly = plotB - 2;
+    for (let i = labels.length - 2; i >= 0; i--)
+      if (labels[i].ly > labels[i + 1].ly - gap) labels[i].ly = labels[i + 1].ly - gap;
+  }
+  for (const L of labels) {
+    const text = L.name + ' ' + fmtVal(L.v);
+    const tw = c2.measureText(text).width;
+    const tx = Math.min(L.ex + 8, W - tw - 4);
+    if (Math.abs(L.ly - L.ey) > 6) { // 引导线
+      c2.strokeStyle = L.color; c2.globalAlpha = .5; c2.lineWidth = .8;
+      c2.beginPath(); c2.moveTo(L.ex + 3, L.ey); c2.lineTo(tx - 2, L.ly); c2.stroke();
+      c2.globalAlpha = 1;
+    }
+    c2.fillStyle = L.color;
+    c2.beginPath(); c2.arc(L.ex, L.ey, 2.8, 0, Math.PI * 2); c2.fill();
+    c2.fillStyle = 'rgba(11,14,20,.78)';
+    c2.fillRect(tx - 3, L.ly - 8, tw + 6, 16);
+    c2.fillStyle = L.color;
+    c2.fillText(text, tx, L.ly);
+  }
+  if (!series.some(s => s.pts.length)) {
+    c2.fillStyle = 'rgba(255,255,255,.4)';
+    c2.font = '13px system-ui, sans-serif';
+    c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    c2.fillText('加载走势数据…', W / 2, (plotT + plotB) / 2);
+  }
+}
+async function etfFetchKlines() {
+  if (!ETF.trend.length || ETF.klineBusy || SNAP) return;
+  ETF.klineBusy = true;
+  try {
+    await Promise.all(ETF.trend.map(async (code, idx) => {
+      if (idx) await sleep(idx * 150); // 错峰
+      try {
+        const info = ETF.map.get(code);
+        const mkt = info ? info.mkt : (code.charAt(0) === '5' || code.charAt(0) === '6' ? 1 : 0);
+        const r = await jsonpRetry(etfKlineUrl(mkt, code));
+        const pts = parsePts(r && r.data && r.data.klines);
+        if (pts.length) ETF.trendPts[code] = pts;   // 失败保留旧曲线
+      } catch (e) { /* 保留旧曲线 */ }
+    }));
+    if (ETF.tab === 'td') etfDraw();
+    else if (ETF.trend.length) { // 非当前 Tab 也预渲染一次（切换即时显示）
+      if ($id('etfCv')) etfDraw();
+    }
+  } finally { ETF.klineBusy = false; }
+}
+
+/* --- 排行 Tab：TOP200 + 搜索 --- */
+function etfRenderRk() {
+  $id('etfBody').innerHTML = `
+    <div class="etf-sec-h" style="margin-top:8px">
+      <span class="etf-seg">
+        <button class="etf-tab${ETF.rkTab === 'in' ? ' on' : ''}" data-etfrk="in">净流入降序</button>
+        <button class="etf-tab${ETF.rkTab === 'out' ? ' on' : ''}" data-etfrk="out">净流出升序</button>
+      </span>
+      <input class="etf-search" id="etfRkQ" placeholder="搜索名称 / 代码（全量 ${ETF.map.size} 只）" value="${esc(ETF.rkQuery)}" autocomplete="off">
+    </div>
+    <div class="etf-list" id="etfRkList"></div>`;
+  etfRkListRender();
+}
+function etfRkListRender() {
+  const box = $id('etfRkList');
+  if (!box) return;
+  if (!ETF.map.size) { box.innerHTML = `<div class="etf-empty">${ETF.scanErr ? '扫描失败 · 点击右上「刷新」重试' : '扫描中…'}</div>`; return; }
+  let list = [...ETF.map.entries()].map(([code, v]) => ({ code, ...v, yi: typeof v.f62 === 'number' ? v.f62 / 1e8 : null }));
+  const q = ETF.rkQuery.trim().toLowerCase();
+  if (q) list = list.filter(x => x.name.toLowerCase().includes(q) || x.code.toLowerCase().includes(q));
+  list.sort((a, b) => (b.yi || 0) - (a.yi || 0));
+  if (ETF.rkTab === 'out') { list = list.filter(x => x.yi != null && x.yi < 0); list.reverse(); }
+  else list = list.filter(x => x.yi != null && x.yi >= 0 || x.yi == null);
+  box.innerHTML = list.slice(0, 200).map((x, i) => etfRowHtml(x, i, false)).join('')
+    || '<div class="etf-empty">无匹配结果</div>';
+}
+function etfRowHtml(x, i, withD5) {
+  const inTrend = ETF.trend.includes(x.code);
+  const watched = ETF.watch.includes(x.code);
+  const d5 = withD5 ? etfDelta5(x.code) : null;
+  return `<div class="etf-row">
+    <span class="rk${i < 3 ? ' top3' : ''}">${i + 1}</span>
+    <span class="etf-name"><b>${esc(x.name)}</b><i>${esc(x.code)}</i></span>
+    ${withD5 ? `<span class="etf-d5">${d5 == null ? '暂无' : `<span class="${clsOf(d5)}">${fmtVal(d5)}</span>`}</span>` : ''}
+    <span class="etf-val ${clsOf(x.yi)}">${x.yi == null ? '--' : fmtVal(x.yi)}</span>
+    <button class="etf-btn${inTrend ? ' on' : ''}" data-etftrend="${esc(x.code)}">${inTrend ? '移出' : '+走势'}</button>
+    <button class="etf-btn${watched ? ' on' : ''}" data-etfwatch="${esc(x.code)}">${watched ? '已关注' : '关注'}</button>
+    ${withD5 ? `<button class="etf-btn" data-etfremove="${esc(x.code)}">移除</button>` : ''}
+  </div>`;
+}
+
+/* --- 观察 Tab --- */
+function etfRenderWa() {
+  if (!ETF.watch.length) {
+    $id('etfBody').innerHTML = '<div class="etf-empty">观察列表为空 · 在排行或锚点里点「关注」加入</div>';
+    return;
+  }
+  const rows = ETF.watch.map((code, i) => {
+    const v = ETF.map.get(code);
+    if (!v) return `<div class="etf-row"><span class="rk">${i + 1}</span>
+      <span class="etf-name"><b class="stale">${esc(code)}</b><i>已退市/失效</i></span>
+      <span class="etf-val flat">--</span><span style="flex:1"></span>
+      <button class="etf-btn" data-etfremove="${esc(code)}">移除</button></div>`;
+    return etfRowHtml({ code, name: v.name, yi: typeof v.f62 === 'number' ? v.f62 / 1e8 : null }, i, true);
+  }).join('');
+  $id('etfBody').innerHTML = `
+    <div class="etf-sec-h" style="margin-top:8px"><span class="etf-sec-t">关注列表（${ETF.watch.length}）</span>
+      <span class="etf-sec-note">${ETF.scanTs ? '快照 ' + hhmmss(new Date(ETF.scanTs)) : ''}</span></div>
+    <div class="etf-list">${rows}</div>`;
+}
+
+/* --- 渲染分发 / Tab 切换 --- */
+function etfRender() {
+  const body = $id('etfBody');
+  if (!body) return;
+  try {
+    if (SNAP) { body.innerHTML = '<div class="etf-empty">离线快照未采集 ETF 数据</div>'; return; }
+    // 头部状态
+    const badge = $id('etfBadge');
+    if (badge) {
+      if (ETF.scanErr) { badge.textContent = '扫描失败'; badge.className = 'etf-badge miss'; }
+      else if (!ETF.map.size) { badge.textContent = '扫描中…'; badge.className = 'etf-badge ok'; }
+      else if (ETF.expected && ETF.map.size < ETF.expected.n) { badge.textContent = `缺失 ${ETF.expected.n - ETF.map.size} 只`; badge.className = 'etf-badge miss'; }
+      else { badge.textContent = '名单全量校验通过'; badge.className = 'etf-badge ok'; }
+    }
+    const de = $id('etfDate');
+    if (de) de.textContent = etfDateTxt();
+    ({ ov: etfRenderOv, td: etfRenderTd, rk: etfRenderRk, wa: etfRenderWa }[ETF.tab] || etfRenderOv)();
+  } catch (e) { /* ETF 模块异常不外溢 */ }
+}
+function etfSetTab(t) {
+  ETF.tab = t;
+  [['etfTabOv', 'ov'], ['etfTabTd', 'td'], ['etfTabRk', 'rk'], ['etfTabWa', 'wa']]
+    .forEach(([id, k]) => $id(id).classList.toggle('on', k === t));
+  etfRender();
+}
+$id('etfTabOv').addEventListener('click', () => etfSetTab('ov'));
+$id('etfTabTd').addEventListener('click', () => etfSetTab('td'));
+$id('etfTabRk').addEventListener('click', () => etfSetTab('rk'));
+$id('etfTabWa').addEventListener('click', () => etfSetTab('wa'));
+$id('etfRefresh').addEventListener('click', () => etfScan(true));
+
+/* --- 交互（body 内动态元素，事件委托） --- */
+function etfToggleTrend(code) {
+  const i = ETF.trend.indexOf(code);
+  if (i >= 0) ETF.trend.splice(i, 1);
+  else {
+    if (ETF.trend.length >= 6) return etfToast('走势最多 6 条，请先移出一条');
+    ETF.trend.push(code);
+  }
+  etfStore('trend', ETF.trend);
+  etfRender();
+  if (ETF.trend.includes(code)) etfFetchKlines();
+}
+function etfToggleWatch(code) {
+  const i = ETF.watch.indexOf(code);
+  if (i >= 0) ETF.watch.splice(i, 1); else ETF.watch.push(code);
+  etfStore('watch', ETF.watch);
+  etfRender();
+}
+$id('etfBody').addEventListener('click', ev => {
+  const el = ev.target.closest('[data-etftrend],[data-etfwatch],[data-etfremove],[data-etfrelock],[data-etfrk]');
+  if (!el) return;
+  if (el.hasAttribute('data-etftrend')) etfToggleTrend(el.getAttribute('data-etftrend'));
+  else if (el.hasAttribute('data-etfwatch')) etfToggleWatch(el.getAttribute('data-etfwatch'));
+  else if (el.hasAttribute('data-etfremove')) {
+    ETF.watch = ETF.watch.filter(c => c !== el.getAttribute('data-etfremove'));
+    etfStore('watch', ETF.watch);
+    etfRender();
+  } else if (el.hasAttribute('data-etfrelock')) {
+    if (ETF.map.size) { etfLockNow(); etfRender(); }
+    else etfToast('暂无数据，无法锁定');
+  } else if (el.hasAttribute('data-etfrk')) {
+    ETF.rkTab = el.getAttribute('data-etfrk');
+    etfRenderRk();
+  }
+});
+$id('etfBody').addEventListener('input', ev => {
+  if (ev.target.id === 'etfRkQ') { ETF.rkQuery = ev.target.value; etfRkListRender(); }
+});
+
+/* --- toast --- */
+let etfToastTimer = 0;
+function etfToast(msg) {
+  let el = document.getElementById('etfToast');
+  if (!el) { el = document.createElement('div'); el.id = 'etfToast'; el.className = 'etf-toast'; document.body.appendChild(el); }
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(etfToastTimer);
+  etfToastTimer = setTimeout(() => el.classList.remove('on'), 1800);
+}
+
 /* ================= 主循环（时钟 + 跳动指示 + 重绘） ================= */
 let lastSec = -1;
 function loop() {
@@ -1589,8 +2156,21 @@ if (!SNAP) {
   fetchCycle(true); // 首次加载（收盘后即作为当日快照）
   showBdSkeleton(); // 细分模块初始骨架屏（待默认选中后加载）
   document.getElementById('snapBtn').addEventListener('click', saveSnapshot);
+  // ETF 模块：首轮扫描 + 30s 全量自愈 + 10s 走势 kline
+  etfInitState();
+  etfRender();
+  etfScan();
+  setInterval(() => {
+    if (FETCHABLE.includes(state.phase) || !ETF.scanTs) etfScan();
+  }, 30000);
+  etfFetchKlines();
+  setInterval(() => {
+    if (ETF.trend.length && (FETCHABLE.includes(state.phase) || !Object.keys(ETF.trendPts).length)) etfFetchKlines();
+  }, 10000);
 } else {
   hydrateSnapshot(); // 离线快照：直接恢复数据，零网络请求
+  etfInitState();
+  etfRender(); // SNAP 守卫：显示"离线快照未采集 ETF 数据"
 }
 
 /* ================= 自适应 ================= */
