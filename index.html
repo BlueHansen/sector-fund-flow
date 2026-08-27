@@ -7,26 +7,45 @@
 <title>A股板块资金走势</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: #0b0e14; }
+  /* 主题变量：默认深色；body.light 覆盖为浅色（白天自动/手动切换） */
+  :root {
+    --bg: #0b0e14;
+    --card-g: linear-gradient(180deg, #121722, #10141d);
+    --t1: #e6e9f0; --t1b: #c6ccd8; --t2: #8b93a7; --t3: #6b7386; --t4: #586074;
+    --line: #1c2536; --panel: rgba(255,255,255,.03); --sep: rgba(255,255,255,.08);
+    --pop: rgba(18,23,34,.97); --shadow: 0 10px 36px rgba(0,0,0,.4);
+    --tabon: #ffd2d2; --link: #4d9dff;
+    --skel1: rgba(255,255,255,.04); --skel2: rgba(255,255,255,.09);
+  }
+  body.light {
+    --bg: #eef1f6;
+    --card-g: linear-gradient(180deg, #ffffff, #f6f8fb);
+    --t1: #1f2937; --t1b: #3a4560; --t2: #5b6577; --t3: #7a8499; --t4: #98a1b3;
+    --line: #d7deea; --panel: rgba(15,35,70,.05); --sep: rgba(15,35,70,.10);
+    --pop: rgba(255,255,255,.98); --shadow: 0 8px 24px rgba(30,50,80,.14);
+    --tabon: #c0303c; --link: #1a6ee0;
+    --skel1: rgba(15,35,70,.05); --skel2: rgba(15,35,70,.12);
+  }
+  html, body { background: var(--bg); }
   body {
-    color: #e6e9f0;
+    color: var(--t1);
     font-family: system-ui, -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
     min-height: 100vh; padding: 14px 12px 28px;
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 780px; margin: 0 auto; }
   .card {
-    background: linear-gradient(180deg, #121722, #10141d);
-    border: 1px solid rgba(255,255,255,.07);
+    background: var(--card-g);
+    border: 1px solid var(--sep);
     border-radius: 16px; padding: 14px 12px 10px;
-    box-shadow: 0 10px 36px rgba(0,0,0,.4);
+    box-shadow: var(--shadow);
   }
   .head { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
-  .clock { margin-left: auto; font-size: 13px; color: #8b93a7; font-variant-numeric: tabular-nums; }
+  .clock { margin-left: auto; font-size: 13px; color: var(--t2); font-variant-numeric: tabular-nums; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; flex: none;
     animation: pulse 1.2s ease-in-out infinite; }
-  .dot.idle { background: #586074; animation: none; }
+  .dot.idle { background: var(--t4); animation: none; }
   @keyframes pulse {
     0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,77,79,.55); }
     50% { opacity: .5; box-shadow: 0 0 0 6px rgba(255,77,79,0); }
@@ -34,27 +53,27 @@
   .pill { font-size: 11px; line-height: 1; padding: 4px 9px; border-radius: 999px; border: 1px solid; flex: none; }
   .pill.live { color: #ff7a7a; border-color: rgba(255,77,79,.45); background: rgba(255,77,79,.1); }
   .pill.lunch { color: #f0b34e; border-color: rgba(240,179,78,.4); background: rgba(240,179,78,.08); }
-  .pill.off { color: #7d8598; border-color: rgba(125,133,152,.35); background: rgba(125,133,152,.08); }
+  .pill.off { color: var(--t3); border-color: rgba(125,133,152,.35); background: rgba(125,133,152,.08); }
   /* 数据源切换按钮排 */
   .tabs { display: flex; align-items: center; gap: 7px; margin: 11px 0 2px; flex-wrap: wrap; }
   .tab {
     font-size: 12px; line-height: 1; padding: 7px 13px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
-    color: #98a0b3; cursor: pointer; transition: all .18s ease; font-family: inherit;
+    border: 1px solid var(--sep); background: var(--panel);
+    color: var(--t2); cursor: pointer; transition: all .18s ease; font-family: inherit;
   }
   .tab:active { transform: scale(.96); }
-  .tab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14);
+  .tab.on { color: var(--tabon); border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14);
     box-shadow: 0 0 12px rgba(255,77,79,.18); }
-  .tab-src { font-size: 11px; color: #5f6778; }
+  .tab-src { font-size: 11px; color: var(--t3); }
   /* 曲线模式 + 时间范围切换 */
   .tabs2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
-  .tlabel { font-size: 10px; color: #5f6778; flex: none; }
+  .tlabel { font-size: 10px; color: var(--t3); flex: none; }
   .tab.sm { font-size: 11px; padding: 5px 10px; }
-  .sub { font-size: 12px; color: #8b93a7; margin: 7px 0 4px; }
+  .sub { font-size: 12px; color: var(--t2); margin: 7px 0 4px; }
   canvas { width: 100%; height: 290px; display: block; touch-action: pan-y; }
-  .foot { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 11px; color: #6b7386;
-    border-top: 1px solid rgba(255,255,255,.05); padding-top: 8px; }
-  .snap-btn { font-size: 11px; color: #4d9dff; background: none; border: 1px solid rgba(77,157,255,.35);
+  .foot { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 11px; color: var(--t3);
+    border-top: 1px solid var(--sep); padding-top: 8px; }
+  .snap-btn { font-size: 11px; color: var(--link); background: none; border: 1px solid rgba(77,157,255,.35);
     border-radius: 999px; padding: 4px 12px; cursor: pointer; font-family: inherit; transition: all .18s ease; }
   .snap-btn:hover { background: rgba(77,157,255,.12); }
   .lg { display: inline-flex; align-items: center; gap: 5px; }
@@ -68,37 +87,37 @@
   .rk-title { font-size: 14px; font-weight: 700; }
   .rtabs { margin-left: auto; display: flex; gap: 6px; }
   .rtab { font-size: 11px; line-height: 1; padding: 6px 11px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
-    color: #98a0b3; cursor: pointer; font-family: inherit; transition: all .18s ease; }
-  .rtab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
+    border: 1px solid var(--sep); background: var(--panel);
+    color: var(--t2); cursor: pointer; font-family: inherit; transition: all .18s ease; }
+  .rtab.on { color: var(--tabon); border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
   .rank-scroll { max-height: 430px; overflow-y: auto; margin-top: 8px; -webkit-overflow-scrolling: touch; }
   .rrow { display: flex; align-items: center; gap: 8px; padding: 9px 4px;
-    border-bottom: 1px solid rgba(255,255,255,.05); cursor: pointer; }
-  .rrow:active { background: rgba(255,255,255,.04); }
-  .rk { width: 22px; text-align: center; font-size: 11px; color: #6b7386;
+    border-bottom: 1px solid var(--sep); cursor: pointer; }
+  .rrow:active { background: var(--sep); }
+  .rk { width: 22px; text-align: center; font-size: 11px; color: var(--t3);
     font-variant-numeric: tabular-nums; flex: none; }
   .rk.top3 { color: #f0b34e; font-weight: 700; }
   .rgrow { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
   .rdot { width: 7px; height: 7px; border-radius: 50%; flex: none; box-shadow: 0 0 5px currentColor; }
-  .rname { font-size: 13px; color: #e6e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rname { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .rpct, .rval { font-size: 12px; font-variant-numeric: tabular-nums; flex: none; text-align: right; }
   .rpct { width: 62px; }
   .rval { width: 78px; font-weight: 600; }
-  .up { color: #ff5c5c; } .down { color: #00c48c; } .flat { color: #8b93a7; }
-  .chev { flex: none; color: #586074; font-size: 10px; transition: transform .2s; }
+  .up { color: #ff5c5c; } .down { color: #00c48c; } .flat { color: var(--t2); }
+  .chev { flex: none; color: var(--t4); font-size: 10px; transition: transform .2s; }
   .rrow.exp .chev { transform: rotate(90deg); }
-  .stocks { background: rgba(255,255,255,.03); border-radius: 10px; margin: 2px 0 8px; padding: 6px 8px; }
-  .st-title { font-size: 11px; color: #8b93a7; padding: 4px 2px 6px; }
+  .stocks { background: var(--panel); border-radius: 10px; margin: 2px 0 8px; padding: 6px 8px; }
+  .st-title { font-size: 11px; color: var(--t2); padding: 4px 2px 6px; }
   .srow { display: flex; align-items: center; gap: 10px; padding: 7px 2px;
-    border-top: 1px solid rgba(255,255,255,.04); }
+    border-top: 1px solid var(--sep); }
   .srow:first-of-type { border-top: none; }
   .spark { width: 56px; height: 24px; flex: none; }
   .sinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-  .sname { font-size: 12.5px; color: #e6e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .scode { font-size: 10px; color: #586074; }
+  .sname { font-size: 12.5px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scode { font-size: 10px; color: var(--t4); }
   .spct { font-size: 12px; width: 58px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
   .sval { font-size: 12px; width: 74px; text-align: right; font-weight: 600; flex: none; font-variant-numeric: tabular-nums; }
-  .loading { font-size: 12px; color: #6b7386; padding: 10px 2px; text-align: center; }
+  .loading { font-size: 12px; color: var(--t3); padding: 10px 2px; text-align: center; }
   @media (max-width: 420px) {
     .rpct { width: 54px; } .rval { width: 70px; font-size: 11.5px; }
     .spark { width: 48px; } .spct { width: 52px; } .sval { width: 66px; }
@@ -107,78 +126,78 @@
   /* ===== 走势板块细分模块 ===== */
   .bd-card { margin-top: 12px; padding-bottom: 12px; }
   .bd-title { font-size: 15px; font-weight: 700; }
-  .bd-desc { font-size: 12px; color: #8b93a7; margin-top: 3px; }
-  .bd-note { font-size: 11px; color: #5f6778; margin: 6px 0 10px; }
+  .bd-desc { font-size: 12px; color: var(--t2); margin-top: 3px; }
+  .bd-note { font-size: 11px; color: var(--t3); margin: 6px 0 10px; }
   .bd-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .bd-dcard { background: rgba(255,255,255,.03); border: 1px solid #1c2536; border-radius: 12px;
+  .bd-dcard { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 10px 12px; position: relative; min-height: 78px; }
   .bd-drow { display: flex; align-items: center; gap: 6px; }
   .bd-ddot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 6px currentColor; }
   .bd-dname { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bd-dval { font-size: 17px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .bd-dtag { font-size: 10px; color: #5f6778; margin-top: 2px; }
+  .bd-dtag { font-size: 10px; color: var(--t3); margin-top: 2px; }
   .bd-sec { margin-top: 14px; }
   .bd-sec-head { display: flex; align-items: center; gap: 8px; }
   .bd-sec-title { font-size: 13px; font-weight: 700; }
-  .bd-sec-hint { font-size: 10px; color: #5f6778; margin-left: auto; }
+  .bd-sec-hint { font-size: 10px; color: var(--t3); margin-left: auto; }
   .bd-acc { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0 12px; margin-top: 8px; }
   .bd-acc-col { min-width: 0; }
-  .bd-acc-sep { border-left: 1px dashed rgba(255,255,255,.15); }
-  .bd-acc-col-t { font-size: 11px; color: #8b93a7; padding-bottom: 4px; }
+  .bd-acc-sep { border-left: 1px dashed var(--sep); }
+  .bd-acc-col-t { font-size: 11px; color: var(--t2); padding-bottom: 4px; }
   .bd-acc-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-    padding: 7px 0; border-bottom: 1px dashed rgba(255,255,255,.08); font-size: 12px; }
+    padding: 7px 0; border-bottom: 1px dashed var(--sep); font-size: 12px; }
   .bd-acc-item:last-child { border-bottom: none; }
-  .bd-acc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c6ccd8; }
+  .bd-acc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1b); }
   .bd-acc-val { font-variant-numeric: tabular-nums; font-weight: 600; flex: none; }
   .bd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-  .bd-mcard { background: rgba(255,255,255,.03); border: 1px solid #1c2536; border-radius: 12px; padding: 9px 11px; }
+  .bd-mcard { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; }
   .bd-mrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .bd-mname { font-size: 12px; color: #c6ccd8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bd-mname { font-size: 12px; color: var(--t1b); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bd-mval { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
   .bd-spark { width: 100%; height: 64px; display: block; margin-top: 6px; }
-  .bd-expand { font-size: 11px; color: #4d9dff; background: none; border: 1px solid rgba(77,157,255,.35);
+  .bd-expand { font-size: 11px; color: var(--link); background: none; border: 1px solid rgba(77,157,255,.35);
     border-radius: 999px; padding: 4px 12px; cursor: pointer; font-family: inherit; margin-left: auto; }
-  .bd-count { font-size: 10px; color: #5f6778; }
-  .bd-empty { font-size: 12px; color: #8b93a7; padding: 16px 0; text-align: center; }
-  .bd-skel { border-radius: 12px; background: linear-gradient(90deg, rgba(255,255,255,.04) 25%,
-    rgba(255,255,255,.09) 50%, rgba(255,255,255,.04) 75%); background-size: 200% 100%;
+  .bd-count { font-size: 10px; color: var(--t3); }
+  .bd-empty { font-size: 12px; color: var(--t2); padding: 16px 0; text-align: center; }
+  .bd-skel { border-radius: 12px; background: linear-gradient(90deg, var(--skel1) 25%,
+    var(--skel2) 50%, var(--skel1) 75%); background-size: 200% 100%;
     animation: bdshine 1.2s infinite; }
   @keyframes bdshine { to { background-position: -200% 0; } }
 
   /* ===== 自选概念管理 + 细分个股下钻 ===== */
   .cust-search { display: flex; gap: 8px; margin: 8px 0 2px; }
-  .cust-input { flex: 1; min-width: 0; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 8px; color: #e6e9f0; font-size: 13px; padding: 8px 10px; font-family: inherit; outline: none; }
+  .cust-input { flex: 1; min-width: 0; background: var(--sep); border: 1px solid var(--sep);
+    border-radius: 8px; color: var(--t1); font-size: 13px; padding: 8px 10px; font-family: inherit; outline: none; }
   .cust-input:focus { border-color: rgba(77,157,255,.55); }
-  .cust-add { font-size: 12px; color: #4d9dff; background: rgba(77,157,255,.1); border: 1px solid rgba(77,157,255,.4);
+  .cust-add { font-size: 12px; color: var(--link); background: rgba(77,157,255,.1); border: 1px solid rgba(77,157,255,.4);
     border-radius: 8px; padding: 0 14px; cursor: pointer; font-family: inherit; flex: none; }
   .cust-sug { max-height: 180px; overflow-y: auto; margin-top: 4px; border-radius: 8px;
-    background: rgba(18,23,34,.97); border: 1px solid rgba(255,255,255,.1); display: none; }
+    background: var(--pop); border: 1px solid var(--sep); display: none; }
   .cust-sug.on { display: block; }
   .cust-sug-item { display: flex; justify-content: space-between; padding: 8px 10px; font-size: 12.5px;
-    cursor: pointer; color: #c6ccd8; }
+    cursor: pointer; color: var(--t1b); }
   .cust-sug-item:active { background: rgba(77,157,255,.12); }
-  .cust-sug-item.has { color: #5f6778; cursor: default; }
+  .cust-sug-item.has { color: var(--t3); cursor: default; }
   .cust-del { font-size: 12px; color: #ff7a7a; background: none; border: none; cursor: pointer;
     font-family: inherit; padding: 4px 6px; flex: none; }
   .rrow .cust-del { visibility: hidden; }
   .rrow:hover .cust-del { visibility: visible; }
   /* 细分个股区 */
-  .bd-stocks { margin-top: 8px; border-top: 1px dashed rgba(255,255,255,.12); padding-top: 6px; }
+  .bd-stocks { margin-top: 8px; border-top: 1px dashed var(--sep); padding-top: 6px; }
   .bd-st-sort { display: flex; gap: 5px; margin-bottom: 4px; }
   .bd-st-tab { font-size: 10px; line-height: 1; padding: 4px 9px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.13); background: none; color: #8b93a7; cursor: pointer; font-family: inherit; }
-  .bd-st-tab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
+    border: 1px solid var(--sep); background: none; color: var(--t2); cursor: pointer; font-family: inherit; }
+  .bd-st-tab.on { color: var(--tabon); border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
   .bd-st-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12px;
-    border-top: 1px solid rgba(255,255,255,.04); }
+    border-top: 1px solid var(--sep); }
   .bd-st-row:first-of-type { border-top: none; }
   .bd-st-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .bd-st-nm { font-size: 12px; color: #e6e9f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bd-st-cd { font-size: 9.5px; color: #586074; }
+  .bd-st-nm { font-size: 12px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bd-st-cd { font-size: 9.5px; color: var(--t4); }
   .bd-st-sp { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
   .bd-st-pc { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
   .bd-st-vl { width: 62px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
-  .bd-st-hint { font-size: 9.5px; color: #586074; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .bd-st-hint { font-size: 9.5px; color: var(--t4); display: flex; justify-content: space-between; margin-bottom: 2px; }
   .bd-mcard { cursor: pointer; }
 
   /* ===== 全市场ETF资金净额模块 ===== */
@@ -186,63 +205,63 @@
   .etf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .etf-title { font-size: 15px; font-weight: 700; }
   .etf-badge { font-size: 10px; line-height: 1; padding: 4px 8px; border-radius: 999px; flex: none; }
-  .etf-badge.ok { color: #4d9dff; border: 1px solid rgba(77,157,255,.4); background: rgba(77,157,255,.08); }
+  .etf-badge.ok { color: var(--link); border: 1px solid rgba(77,157,255,.4); background: rgba(77,157,255,.08); }
   .etf-badge.miss { color: #f0b34e; border: 1px solid rgba(240,179,78,.4); background: rgba(240,179,78,.08); }
-  .etf-date { font-size: 10px; color: #5f6778; flex: none; font-variant-numeric: tabular-nums; }
-  .etf-refresh { margin-left: auto; font-size: 11px; color: #4d9dff; background: none;
+  .etf-date { font-size: 10px; color: var(--t3); flex: none; font-variant-numeric: tabular-nums; }
+  .etf-refresh { margin-left: auto; font-size: 11px; color: var(--link); background: none;
     border: 1px solid rgba(77,157,255,.35); border-radius: 999px; padding: 4px 12px;
     cursor: pointer; font-family: inherit; flex: none; }
-  .etf-desc { font-size: 12px; color: #8b93a7; margin-top: 3px; }
+  .etf-desc { font-size: 12px; color: var(--t2); margin-top: 3px; }
   .etf-tabs { display: flex; gap: 6px; margin: 10px 0 4px; }
   .etf-tab { font-size: 11px; line-height: 1; padding: 6px 12px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.03);
-    color: #98a0b3; cursor: pointer; font-family: inherit; transition: all .18s ease; }
-  .etf-tab.on { color: #ffd2d2; border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
+    border: 1px solid var(--sep); background: var(--panel);
+    color: var(--t2); cursor: pointer; font-family: inherit; transition: all .18s ease; }
+  .etf-tab.on { color: var(--tabon); border-color: rgba(255,77,79,.55); background: rgba(255,77,79,.14); }
   .etf-sec-h { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   .etf-sec-t { font-size: 13px; font-weight: 700; }
-  .etf-sec-note { font-size: 10px; color: #5f6778; margin-left: auto; font-variant-numeric: tabular-nums; }
-  .etf-sub { font-size: 11px; color: #5f6778; margin: 2px 0 6px; }
+  .etf-sec-note { font-size: 10px; color: var(--t3); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .etf-sub { font-size: 11px; color: var(--t3); margin: 2px 0 6px; }
   .etf-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
   @media (min-width: 560px) { .etf-mgrid { grid-template-columns: repeat(3, 1fr); } }
-  .etf-mcell { background: rgba(255,255,255,.03); border: 1px solid #1c2536; border-radius: 12px; padding: 10px 12px; min-height: 86px; }
-  .etf-mname { font-size: 11px; color: #8b93a7; }
+  .etf-mcell { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 86px; }
+  .etf-mname { font-size: 11px; color: var(--t2); }
   .etf-mval { font-size: 19px; font-weight: 700; margin-top: 5px; font-variant-numeric: tabular-nums; line-height: 1.25; }
-  .etf-mval .u { font-size: 12px; font-weight: 400; color: #98a0b3; }
-  .etf-mnote { font-size: 10px; color: #5f6778; margin-top: 3px; }
-  .etf-anc { display: flex; gap: 10px; background: rgba(255,255,255,.03); border: 1px solid #1c2536;
+  .etf-mval .u { font-size: 12px; font-weight: 400; color: var(--t2); }
+  .etf-mnote { font-size: 10px; color: var(--t3); margin-top: 3px; }
+  .etf-anc { display: flex; gap: 10px; background: var(--panel); border: 1px solid var(--line);
     border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
   .etf-anc-l { flex: 1; min-width: 0; }
-  .etf-anc-tag { font-size: 10px; color: #5f6778; }
+  .etf-anc-tag { font-size: 10px; color: var(--t3); }
   .etf-anc-name { font-size: 14px; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .etf-anc-code { font-size: 10px; color: #586074; font-variant-numeric: tabular-nums; }
+  .etf-anc-code { font-size: 10px; color: var(--t4); font-variant-numeric: tabular-nums; }
   .etf-anc-r { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
   .etf-anc-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .etf-anc-lock { font-size: 10px; color: #8b93a7; font-variant-numeric: tabular-nums; }
+  .etf-anc-lock { font-size: 10px; color: var(--t2); font-variant-numeric: tabular-nums; }
   .etf-anc-btns { display: flex; gap: 6px; }
   .etf-btn { font-size: 10.5px; line-height: 1; padding: 5px 9px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.14); background: none; color: #98a0b3;
+    border: 1px solid var(--sep); background: none; color: var(--t2);
     cursor: pointer; font-family: inherit; flex: none; }
-  .etf-btn.on { color: #ffd2d2; border-color: rgba(255,77,79,.5); background: rgba(255,77,79,.12); }
+  .etf-btn.on { color: var(--tabon); border-color: rgba(255,77,79,.5); background: rgba(255,77,79,.12); }
   .etf-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px;
-    border-bottom: 1px solid rgba(255,255,255,.05); }
+    border-bottom: 1px solid var(--sep); }
   .etf-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .etf-name b { font-size: 12.5px; color: #e6e9f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .etf-name b.stale { color: #586074; }
-  .etf-name i { font-size: 10px; color: #586074; font-style: normal; font-variant-numeric: tabular-nums; }
+  .etf-name b { font-size: 12.5px; color: var(--t1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .etf-name b.stale { color: var(--t4); }
+  .etf-name i { font-size: 10px; color: var(--t4); font-style: normal; font-variant-numeric: tabular-nums; }
   .etf-val { width: 84px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; font-size: 12px; }
-  .etf-d5 { width: 74px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; flex: none; color: #8b93a7; }
+  .etf-d5 { width: 74px; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; flex: none; color: var(--t2); }
   .etf-list { max-height: 420px; overflow-y: auto; margin-top: 6px; -webkit-overflow-scrolling: touch; }
-  .etf-empty { font-size: 12px; color: #8b93a7; text-align: center; padding: 18px 0; }
+  .etf-empty { font-size: 12px; color: var(--t2); text-align: center; padding: 18px 0; }
   .etf-cv { width: 100%; height: 240px; display: block; margin-top: 8px; }
   .etf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .etf-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);
-    color: #c6ccd8; display: inline-flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+  .etf-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--sep);
+    color: var(--t1b); display: inline-flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
   .etf-chip .x { color: #ff7a7a; cursor: pointer; }
   .etf-seg { display: flex; gap: 6px; }
-  .etf-search { flex: 1; min-width: 120px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 8px; color: #e6e9f0; font-size: 12px; padding: 6px 10px; font-family: inherit; outline: none; }
+  .etf-search { flex: 1; min-width: 120px; background: var(--sep); border: 1px solid var(--sep);
+    border-radius: 8px; color: var(--t1); font-size: 12px; padding: 6px 10px; font-family: inherit; outline: none; }
   .etf-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
-    background: rgba(20,26,38,.95); border: 1px solid rgba(255,255,255,.15); color: #e6e9f0;
+    background: var(--pop); border: 1px solid var(--sep); color: var(--t1);
     font-size: 12px; padding: 8px 16px; border-radius: 999px; opacity: 0; transition: all .25s;
     z-index: 99; pointer-events: none; }
   .etf-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -256,12 +275,13 @@
       <h1>A股板块资金走势</h1>
       <span class="pill off" id="pill">加载中</span>
       <span class="clock" id="clock">--:--:--</span>
+      <button class="snap-btn" id="themeBtn" title="主题：自动（白天浅色/夜间深色），点击切换">⏱</button>
     </div>
     <div class="tabs">
       <button class="tab" id="tab-hy" onclick="switchSource('hy')">东财·行业</button>
       <button class="tab" id="tab-gn" onclick="switchSource('gn')">东财·概念</button>
       <button class="tab" id="tab-custom" onclick="switchSource('custom')">自选概念</button>
-      <span class="tab-src" style="color:#5f6778">数据源：东方财富</span>
+      <span class="tab-src" style="color:var(--t3)">数据源：东方财富</span>
     </div>
     <div class="tabs2">
       <span class="tlabel">曲线</span>
@@ -399,7 +419,56 @@ const state = {
   mode: 'cum', win: 0,                         // 曲线模式 cum=累计净额 / vel=5分流速；win=0 全天，否则近 N 分钟
   selected: null,                              // 主图选中板块 BK（驱动细分模块）
   customBks: null,                             // 自选概念 BK 列表（localStorage 持久化）
+  light: false,                                // 当前是否浅色主题（auto 按时间 / 手动覆盖）
 };
+// 主题模式：auto=跟随时间（7:00-19:00 浅色），light/dark 手动锁定；localStorage 持久化
+let themeMode = 'auto';
+try { themeMode = localStorage.getItem('themeMode') || 'auto'; } catch (e) {}
+
+/* Canvas 主题色（浅色下网格/文字用深墨蓝系，深色下用白色系） */
+const UI = {};
+function refreshUI() {
+  const L = !!state.light;
+  Object.assign(UI, L ? {
+    axisStrong: 'rgba(25,45,75,.55)', gridW: 'rgba(25,45,75,.12)', gridV: 'rgba(25,45,75,.08)',
+    axisTxt: 'rgba(30,50,80,.8)', txtDim: 'rgba(40,60,90,.6)', txtFaint: 'rgba(40,60,90,.5)',
+    lunch: 'rgba(25,45,75,.32)', zero: 'rgba(25,45,75,.2)', zero2: 'rgba(25,45,75,.22)',
+    labelBg: 'rgba(248,250,253,.9)',
+  } : {
+    axisStrong: 'rgba(255,255,255,.35)', gridW: 'rgba(255,255,255,.07)', gridV: 'rgba(255,255,255,.05)',
+    axisTxt: 'rgba(255,255,255,.55)', txtDim: 'rgba(255,255,255,.38)', txtFaint: 'rgba(255,255,255,.4)',
+    lunch: 'rgba(255,255,255,.22)', zero: 'rgba(255,255,255,.14)', zero2: 'rgba(255,255,255,.15)',
+    labelBg: 'rgba(11,14,20,.78)',
+  });
+}
+function applyTheme() {
+  document.body.classList.toggle('light', !!state.light);
+  const mc = document.querySelector('meta[name=theme-color]');
+  if (mc) mc.content = state.light ? '#eef1f6' : '#0b0e14';
+  refreshUI();
+  const b = document.getElementById('themeBtn');
+  if (b) {
+    b.textContent = themeMode === 'auto' ? '⏱' : (themeMode === 'light' ? '☀' : '🌙');
+    b.title = `主题：${themeMode === 'auto' ? '自动（白天浅色/夜间深色）' : themeMode === 'light' ? '浅色' : '深色'}，点击切换`;
+  }
+  // 立即重绘各静态画布（主图在 rAF 循环里自动重绘，无需处理）
+  try { drawAllSparks(); drawMiniSparks(); etfDraw(); } catch (e) {}
+}
+function cycleTheme() {
+  themeMode = themeMode === 'auto' ? 'light' : themeMode === 'light' ? 'dark' : 'auto';
+  try { localStorage.setItem('themeMode', themeMode); } catch (e) {}
+  state.light = themeMode === 'auto' ? autoLight() : themeMode === 'light';
+  applyTheme();
+}
+function autoLight() { const h = new Date().getHours(); return h >= 7 && h < 19; }
+function tickTheme() { // 每秒检查（auto 模式下到点自动换）
+  const want = themeMode === 'auto' ? autoLight() : themeMode === 'light';
+  if (state.light !== want) { state.light = want; applyTheme(); }
+}
+state.light = themeMode === 'auto' ? autoLight() : themeMode === 'light';
+refreshUI();
+document.getElementById('themeBtn').addEventListener('click', cycleTheme);
+applyTheme();
 let fetching = false;
 let fetchGen = 0;   // 请求代际号：切换数据源 +1，旧代响应全部作废
 let cycleCount = 0;
@@ -779,10 +848,10 @@ function drawChart() {
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   const hLine = (v, strong) => {
     const y = Y(v, g, sc);
-    ctx.strokeStyle = strong ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.07)';
+    ctx.strokeStyle = strong ? UI.axisStrong : UI.gridW;
     ctx.lineWidth = strong ? 1.5 : 1;
     ctx.beginPath(); ctx.moveTo(g.plotL, y); ctx.lineTo(g.plotR, y); ctx.stroke();
-    ctx.fillStyle = strong ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.38)';
+    ctx.fillStyle = strong ? UI.axisTxt : UI.txtDim;
     ctx.fillText((v > 0 ? '+' : '') + fmtTick(v), g.plotL - 6, y);
   };
   const ps = niceStep(sc.vMax / 2);
@@ -795,7 +864,7 @@ function drawChart() {
   const step = !state.win ? 30 : state.win >= 60 ? 10 : state.win >= 15 ? 5 : 1;
   const ticks = [];
   for (let m = Math.ceil((dom.mLo - 1e-9) / step) * step; m <= dom.mHi + 1e-9; m += step) ticks.push(m);
-  ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = UI.gridV; ctx.lineWidth = 1;
   for (const m of ticks) { // 垂直网格线（边缘两条由坐标框代替，不画）
     if (m === dom.mLo || m === dom.mHi) continue;
     const x = xOf(m);
@@ -806,12 +875,12 @@ function drawChart() {
     const xm = xOf(120);
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = UI.lunch; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(xm, g.plotT); ctx.lineTo(xm, g.plotB); ctx.stroke();
     ctx.restore();
   }
 
-  ctx.fillStyle = 'rgba(255,255,255,.38)';
+  ctx.fillStyle = UI.txtDim;
   ctx.textBaseline = 'top';
   const yb = g.plotB + 6;
   for (const m of ticks) {
@@ -907,7 +976,7 @@ function drawChart() {
       }
       ctx.fillStyle = L.s.color; // 端点小圆点（选中加大）
       ctx.beginPath(); ctx.arc(L.ex, L.ey, L.dim ? 2.6 : 3.4, 0, Math.PI * 2); ctx.fill();
-      fillRoundRect(tx - 3, L.ly - 8, tw + 6, 16, 4, 'rgba(11,14,20,.78)'); // 底衬
+      fillRoundRect(tx - 3, L.ly - 8, tw + 6, 16, 4, UI.labelBg); // 底衬
       const el = now - L.s.flashStart; // 数值闪烁：红/绿背景 0.8s 渐隐
       if (el >= 0 && el < 800) {
         const a = (1 - el / 800) * 0.55;
@@ -923,7 +992,7 @@ function drawChart() {
 
   /* --- 空状态 --- */
   if (!state.sectors.some(s => s.points.length)) {
-    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.fillStyle = UI.txtFaint;
     ctx.font = '13px system-ui, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(state.everFetched ? '暂无分时数据' : '正在获取数据…',
@@ -1002,7 +1071,7 @@ function drawSpark(cv, pts) {
   if (mx === mn) { mx += 1; mn -= 1; }
   const x = i => 1 + (i / (pts.length - 1)) * (W - 2);
   const y = v => (H - 3) - ((v - mn) / (mx - mn)) * (H - 6);
-  c2.strokeStyle = 'rgba(255,255,255,.15)'; c2.lineWidth = .5; // 0 轴基准线
+  c2.strokeStyle = UI.zero2; c2.lineWidth = .5; // 0 轴基准线
   c2.beginPath(); c2.moveTo(0, y(0)); c2.lineTo(W, y(0)); c2.stroke();
   c2.strokeStyle = pts[pts.length - 1].v >= 0 ? '#ff5c5c' : '#00c48c'; // 红涨绿跌
   c2.lineWidth = 1.2; c2.lineJoin = 'round';
@@ -1100,7 +1169,7 @@ function renderCustSug() {
     name.toLowerCase().includes(q.toLowerCase()) || bk.toLowerCase() === q.toLowerCase()).slice(0, 10);
   if (!hits.length) { custSug.classList.remove('on'); return; }
   custSug.innerHTML = hits.map(([bk, name]) =>
-    `<div class="cust-sug-item${has.has(bk) ? ' has' : ''}" data-add="${bk}"><span>${esc(name)}</span><span style="color:#5f6778;font-size:10px">${has.has(bk) ? '已添加' : bk}</span></div>`).join('');
+    `<div class="cust-sug-item${has.has(bk) ? ' has' : ''}" data-add="${bk}"><span>${esc(name)}</span><span style="color:var(--t3);font-size:10px">${has.has(bk) ? '已添加' : bk}</span></div>`).join('');
   custSug.classList.add('on');
 }
 custSug.addEventListener('click', ev => {
@@ -1313,7 +1382,7 @@ async function loadBreakdown(bk) {
   } catch (e) {
     if (BD.gen !== gen) return;
     $id('bdAccIn').innerHTML = $id('bdAccOut').innerHTML = '<div class="bd-empty">—</div>';
-    $id('bdGrid').innerHTML = '<div class="bd-empty">细分加载失败 · <span style="color:#4d9dff;cursor:pointer" onclick="loadBreakdown(state.selected)">点击重试</span></div><div></div>';
+    $id('bdGrid').innerHTML = '<div class="bd-empty">细分加载失败 · <span style="color:var(--link);cursor:pointer" onclick="loadBreakdown(state.selected)">点击重试</span></div><div></div>';
     $id('bdCount').textContent = '…';
   }
 }
@@ -1462,7 +1531,7 @@ function drawMiniSpark(cv, pts) {
   const x = m => pad + ((m - pts[0].m) / t) * (W - pad * 2);
   const y = v => pad + (1 - (v - mn) / (mx - mn)) * (H - pad * 2);
   if (mn < 0 && mx > 0) { // 0 轴细线
-    c2.strokeStyle = 'rgba(255,255,255,.14)'; c2.lineWidth = 1;
+    c2.strokeStyle = UI.zero; c2.lineWidth = 1;
     c2.beginPath(); c2.moveTo(0, y(0)); c2.lineTo(W, y(0)); c2.stroke();
   }
   const last = pts[pts.length - 1];
@@ -1869,10 +1938,10 @@ function etfDraw() {
   c2.textAlign = 'right'; c2.textBaseline = 'middle';
   const hLine = (v, strong) => {
     const y = Y(v);
-    c2.strokeStyle = strong ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.07)';
+    c2.strokeStyle = strong ? UI.axisStrong : UI.gridW;
     c2.lineWidth = strong ? 1.5 : 1;
     c2.beginPath(); c2.moveTo(plotL, y); c2.lineTo(plotR, y); c2.stroke();
-    c2.fillStyle = 'rgba(255,255,255,.4)';
+    c2.fillStyle = UI.txtFaint;
     c2.fillText((v > 0 ? '+' : '') + fmtTick(v), plotL - 6, y);
   };
   const ps = niceStep(sc.vMax / 2);
@@ -1883,10 +1952,10 @@ function etfDraw() {
   // 午休虚线 + X 轴
   c2.save();
   c2.setLineDash([4, 4]);
-  c2.strokeStyle = 'rgba(255,255,255,.22)';
+  c2.strokeStyle = UI.lunch;
   c2.beginPath(); c2.moveTo(X(120), plotT); c2.lineTo(X(120), plotB); c2.stroke();
   c2.restore();
-  c2.fillStyle = 'rgba(255,255,255,.38)'; c2.textBaseline = 'top';
+  c2.fillStyle = UI.txtDim; c2.textBaseline = 'top';
   c2.textAlign = 'left'; c2.fillText('09:30', plotL, plotB + 5);
   c2.textAlign = 'center'; c2.fillText('11:30/13:00', X(120), plotB + 5);
   c2.textAlign = 'right'; c2.fillText('15:00', plotR, plotB + 5);
@@ -1929,13 +1998,13 @@ function etfDraw() {
     }
     c2.fillStyle = L.color;
     c2.beginPath(); c2.arc(L.ex, L.ey, 2.8, 0, Math.PI * 2); c2.fill();
-    c2.fillStyle = 'rgba(11,14,20,.78)';
+    c2.fillStyle = UI.labelBg;
     c2.fillRect(tx - 3, L.ly - 8, tw + 6, 16);
     c2.fillStyle = L.color;
     c2.fillText(text, tx, L.ly);
   }
   if (!series.some(s => s.pts.length)) {
-    c2.fillStyle = 'rgba(255,255,255,.4)';
+    c2.fillStyle = UI.txtFaint;
     c2.font = '13px system-ui, sans-serif';
     c2.textAlign = 'center'; c2.textBaseline = 'middle';
     c2.fillText('加载走势数据…', W / 2, (plotT + plotB) / 2);
@@ -2110,6 +2179,7 @@ function loop() {
   if (now.getSeconds() !== lastSec) {
     lastSec = now.getSeconds();
     clockEl.textContent = hhmmss(now);
+    tickTheme(); // auto 模式到点自动切换浅/深色
     state.phase = getPhase(now);
     if (SNAP) { // 离线快照：固定标记 + 采集时间，不做任何网络动作
       pillEl.textContent = '离线快照 ' + hhmmss(new Date(SNAP.ts));
