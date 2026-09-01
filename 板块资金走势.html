@@ -273,6 +273,9 @@
     color: var(--t2); font-variant-numeric: tabular-nums; }
   .idx-chip i { width: 12px; height: 0; border-top: 2px dashed currentColor; flex: none; }
   .idx-chip b { font-weight: 600; }
+  .idx-chip.clk { cursor: pointer; transition: all .15s ease; }
+  .idx-chip.clk:active { transform: scale(.95); }
+  .idx-chip.on { background: var(--panel); border-color: currentColor; }
   .lg-idx { display: inline-flex; align-items: center; gap: 4px; }
   .lg-idx i { width: 12px; border-top: 2px dashed currentColor; height: 0; }
   /* 细分·指数共振栏 */
@@ -284,6 +287,7 @@
   .bd-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1b); }
   .bd-res-idx { color: var(--t3); font-size: 11px; flex: none; }
   .bd-res-diff { font-variant-numeric: tabular-nums; color: var(--t3); flex: none; font-size: 11px; }
+  .bd-res-cd { color: var(--t4); font-size: 10px; }
 </style>
 </head>
 <body>
@@ -333,9 +337,18 @@
     <div class="bd-note" id="bdNote">已积累 0 个盘中截面；默认只放细分板块，横轴压缩午休，纵轴保持真实净额口径。</div>
     <div class="bd-dual" id="bdDual"></div>
     <div class="bd-sec" id="bdResSec">
-      <div class="bd-sec-head"><span class="bd-sec-title">与指数共振</span><span class="bd-sec-hint">板块涨跌幅与指数的贴近度 · 差值越小共振越强</span></div>
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数共振</span><span class="bd-sec-hint">板块涨跌幅与指数的贴近度 · 点指数筛个股</span></div>
       <div class="idx-row" id="bdResIdx" style="margin:6px 0 0"></div>
       <div class="bd-res-list" id="bdResList"><div class="bd-empty">等待数据…</div></div>
+    </div>
+    <div class="bd-sec" id="bdDivSec">
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数背离</span><span class="bd-sec-hint">指数跌·资金进 = 独立行情方向 · 点指数切换参照</span></div>
+      <div class="idx-row" id="bdDivIdx" style="margin:6px 0 0"></div>
+      <div class="bd-acc">
+        <div class="bd-acc-col" id="bdDivIn"></div>
+        <div class="bd-acc-sep"></div>
+        <div class="bd-acc-col" id="bdDivOut"></div>
+      </div>
     </div>
     <div class="bd-sec">
       <div class="bd-sec-head"><span class="bd-sec-title">近13分钟资金变化</span><span class="bd-sec-hint">看加速，不只看绝对值</span></div>
@@ -717,7 +730,7 @@ async function fetchIndexes(myGen) {
           const m = timeToMinute(line.slice(ci - 5, ci));
           if (m >= 0 && m <= TOTAL_MIN) pts.push({ m, v: (v / pre - 1) * 100 }); // 涨跌幅%
         }
-        return pts.length >= 2 ? { name: ix.name, color: ix.color, pts } : null;
+        return pts.length >= 2 ? { secid: ix.secid, name: ix.name, color: ix.color, pts } : null;
       } catch (e) { return null; }
     }));
     if (fetchGen !== myGen) return;
@@ -734,18 +747,38 @@ async function fetchIndexes(myGen) {
     }
   } finally { idxBusy = false; }
 }
-/* 指数 chips：标题区一行 + 共振栏复用（同一渲染函数，两个容器） */
+/* 指数 chips：标题区静态一行；共振/背离栏可点击变体（各自容器渲染） */
 function renderIdxChips() {
-  const html = state.indexes.map(ix => {
+  const chip = (ix, clk, attr, onSec) => {
     const v = ix.pts.length ? ix.pts[ix.pts.length - 1].v : null;
-    return `<span class="idx-chip" style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></span>`;
-  }).join('');
+    const on = clk && onSec === ix.secid ? ' on' : '';
+    return `<span class="idx-chip${clk ? ' clk' + on : ''}"${clk ? ` ${attr}="${ix.secid}"` : ''} style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></span>`;
+  };
   const row = document.getElementById('idxRow');
-  if (row) { row.innerHTML = html; row.style.display = state.indexes.length ? '' : 'none'; }
+  if (row) { row.innerHTML = state.indexes.map(ix => chip(ix, false)).join(''); row.style.display = state.indexes.length ? '' : 'none'; }
   const res = document.getElementById('bdResIdx');
-  if (res) res.innerHTML = html;
+  if (res) res.innerHTML = state.indexes.map(ix => chip(ix, true, 'data-idxsec', BD.resIdx)).join('');
+  renderDivergence();
 }
-/* 细分·指数共振：板块涨跌幅 vs 三大指数，差值最小 = 共振指数 */
+
+/* 主线代表股 TOP30（个股共振筛选用，60s 缓存） */
+async function ensureMainStocks() {
+  if (SNAP || BD.msBusy || !BD.mainBk) return;
+  if (BD.mainStocks && Date.now() - BD.mainStocksTs < 60000) return;
+  BD.msBusy = true;
+  try {
+    const r = await jsonpRetry(`https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&np=1&fltt=2&invt=2&fid=f62&fs=b:${BD.mainBk}+f:!50&fields=f12,f13,f14,f3,f62&ut=${UT}&po=1`);
+    BD.mainStocks = arr(r && r.data && r.data.diff).filter(d => d && d.f12).map(d => ({
+      code: String(d.f12), name: d.f14 || d.f12,
+      pct: typeof d.f3 === 'number' ? d.f3 : null,
+      val: typeof d.f62 === 'number' ? d.f62 / 1e8 : null,
+    }));
+    BD.mainStocksTs = Date.now();
+  } catch (e) { /* 保留旧数据 */ }
+  BD.msBusy = false;
+}
+
+/* 细分·指数共振：默认板块视图（差值最小=共振指数）；点指数 chip 切个股视图 */
 function renderResonance() {
   const list = document.getElementById('bdResList');
   if (!list) return;
@@ -754,6 +787,35 @@ function renderResonance() {
     list.innerHTML = '<div class="bd-empty">等待指数或细分数据…</div>';
     return;
   }
+  /* --- 个股视图：主线代表股按 |个股涨幅 − 指数涨幅| 升序 = 与指数走得最近的个股 --- */
+  if (BD.resIdx) {
+    const ix = idxReady.find(x => x.secid === BD.resIdx);
+    if (!ix) { BD.resIdx = null; }
+    else {
+      if (SNAP) { list.innerHTML = '<div class="bd-empty">离线快照未采集个股共振数据</div>'; return; }
+      const idxV = ix.pts[ix.pts.length - 1].v;
+      if (!BD.mainStocks) {
+        list.innerHTML = '<div class="bd-empty">加载个股…</div>';
+        ensureMainStocks().then(() => renderResonance());
+        return;
+      }
+      if (Date.now() - BD.mainStocksTs > 60000) ensureMainStocks().then(() => renderResonance()); // 静默续期
+      const mainName = (state.sectors.find(s => s.bk === BD.mainBk) || {}).name || '主线';
+      const rows = BD.mainStocks
+        .filter(s => s.pct != null)
+        .map(s => ({ ...s, diff: Math.abs(s.pct - idxV) }))
+        .sort((a, b) => a.diff - b.diff)
+        .slice(0, 8);
+      list.innerHTML = `<div class="bd-res-item" style="border-bottom:none;padding-bottom:2px"><span class="bd-res-name" style="color:var(--t3);font-size:10.5px">「${esc(mainName)}」代表股 ↔ ${esc(ix.name)} ${(idxV > 0 ? '+' : '') + idxV.toFixed(2)}% · 按贴近度排序</span></div>` +
+        (rows.length ? rows.map(r => `
+    <div class="bd-res-item">
+      <span class="bd-res-name" title="${esc(r.name)}">${esc(r.name)} <span class="bd-res-cd">${esc(r.code)}</span> <span class="${clsOf(r.pct)}">${pctTxt(r.pct)}</span></span>
+      <span class="bd-res-idx">差${r.diff.toFixed(2)}% <span class="${clsOf(r.val)}">${r.val == null ? '' : fmtVal(r.val)}</span></span>
+    </div>`).join('') : '<div class="bd-empty">暂无个股数据</div>');
+      return;
+    }
+  }
+  /* --- 板块视图（默认） --- */
   const idxVals = idxReady.map(ix => ({ name: ix.name.replace('指数', '').replace('指', ''), v: ix.pts[ix.pts.length - 1].v }));
   const rows = BD.subs
     .map(s => {
@@ -774,6 +836,54 @@ function renderResonance() {
       <span class="bd-res-idx">↔ ${esc(r.idx)} <span class="bd-res-diff">差${r.diff.toFixed(2)}%</span></span>
     </div>`).join('');
 }
+
+/* 与指数背离：排行榜 40 板块 vs 参照指数当日涨跌幅（零额外请求）
+   逆势流入 = 指数跌且板块资金净流入（独立行情）；逆势流出 = 指数涨且板块净流出（弱势） */
+function renderDivergence() {
+  const inEl = document.getElementById('bdDivIn'), outEl = document.getElementById('bdDivOut');
+  const idxRow = document.getElementById('bdDivIdx');
+  if (!inEl || !outEl) return;
+  const idxReady = state.indexes.filter(ix => ix.pts.length);
+  if (!idxReady.length || (!state.rankIn.length && !state.rankOut.length)) {
+    inEl.innerHTML = outEl.innerHTML = '<div class="bd-empty">等待数据…</div>';
+    if (idxRow) idxRow.innerHTML = '';
+    return;
+  }
+  if (idxRow) idxRow.innerHTML = idxReady.map(ix => {
+    const v = ix.pts[ix.pts.length - 1].v;
+    return `<span class="idx-chip clk${BD.divIdx === ix.secid ? ' on' : ''}" data-divsec="${ix.secid}" style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></span>`;
+  }).join('');
+  const ix = idxReady.find(x => x.secid === BD.divIdx) || idxReady[0];
+  const iv = ix.pts[ix.pts.length - 1].v;
+  const byBk = new Map();
+  for (const d of [...state.rankIn, ...state.rankOut]) if (d && d.f12) byBk.set(d.f12, d);
+  const all = [...byBk.values()].filter(d => typeof d.f62 === 'number' && typeof d.f3 === 'number');
+  const item = (d, sign) => `<div class="bd-acc-item"><span class="bd-acc-name" title="${esc(d.f14 || d.f12)}">${esc(d.f14 || d.f12)} <span class="${clsOf(d.f3)}" style="font-size:10px">${pctTxt(d.f3)}</span></span><span class="bd-acc-val ${sign > 0 ? 'up' : 'down'}">${fmtVal(d.f62 / 1e8)}</span></div>`;
+  const mk = (title, list, emptyMsg) =>
+    `<div class="bd-acc-col-t">${title}</div>` + (list.length ? list.join('') : `<div class="bd-empty">${emptyMsg}</div>`);
+  const divIn = iv < 0 ? all.filter(d => d.f62 > 0).sort((a, b) => b.f62 - a.f62).slice(0, 5).map(d => item(d, 1)) : [];
+  const divOut = iv > 0 ? all.filter(d => d.f62 < 0).sort((a, b) => a.f62 - b.f62).slice(0, 5).map(d => item(d, -1)) : [];
+  inEl.innerHTML = mk(`逆势流入 · ${iv < 0 ? esc(ix.name) + ' ' + iv.toFixed(2) + '%' : '指数未跌'}`, divIn,
+    iv < 0 ? '无' : '指数上涨中，无逆势流入');
+  outEl.innerHTML = mk(`逆势流出 · ${iv > 0 ? esc(ix.name) + ' +' + iv.toFixed(2) + '%' : '指数未涨'}`, divOut,
+    iv > 0 ? '无' : '指数下跌中，无逆势流出');
+}
+
+/* 共振/背离 chips 交互 */
+document.getElementById('bdResIdx').addEventListener('click', ev => {
+  const c = ev.target.closest('[data-idxsec]');
+  if (!c) return;
+  const sec = c.getAttribute('data-idxsec');
+  BD.resIdx = BD.resIdx === sec ? null : sec; // 再点一次回到板块视图
+  renderIdxChips();
+  renderResonance();
+});
+document.getElementById('bdDivIdx').addEventListener('click', ev => {
+  const c = ev.target.closest('[data-divsec]');
+  if (!c) return;
+  BD.divIdx = c.getAttribute('data-divsec');
+  renderDivergence();
+});
 
 async function fetchCycle(force) {
   if (SNAP) return; // 离线快照：不发任何请求
@@ -1413,6 +1523,9 @@ const BD = {
   wl: null, wlPromise: null,     // 概念白名单 Map(BK→名称)
   snapshots: [], lastSnap: 0,    // 盘中截面（60s 一个，滚动 30 个）
   expanded: false, klineBusy: false,
+  resIdx: null,                  // 共振栏选中的指数 secid（null=板块视图）
+  mainStocks: null, mainStocksTs: 0, msBusy: false, // 主线代表股（个股共振筛选用）
+  divIdx: '1.000001',            // 背离栏参照指数 secid（默认上证）
 };
 
 // 宽基/风格类板块名称过滤：这类板块覆盖面天然极广（cnt 虚高），不算主线的"细分"
@@ -1473,6 +1586,7 @@ async function loadBreakdown(bk) {
   const gen = ++BD.gen;
   BD.mainBk = bk;
   BD.subs = []; BD.snapshots = []; BD.lastSnap = 0; BD.expanded = false;
+  BD.mainStocks = null; BD.resIdx = null; // 换主线：代表股与共振个股视图重置
   showBdSkeleton();
   // 离线快照：只用采集时访问过的主线（完整 subs），未访问的提示
   if (SNAP) {
@@ -1842,7 +1956,9 @@ function hydrateSnapshot() {
   state.locked = true; state.everFetched = true;
   state.stockCache = S.stockCache || {};
   BD.visited = S.bdVisited || {};
-  state.indexes = (S.indexes || []).filter(ix => ix && ix.pts && ix.pts.length); // 恢复指数线（离线恒显）
+  state.indexes = (S.indexes || [])
+    .filter(ix => ix && ix.pts && ix.pts.length)
+    .map(ix => ({ ...ix, secid: ix.secid || (INDEXES.find(n => n.name === ix.name) || {}).secid })); // 旧快照按名称补 secid
   renderIdxChips();
   updateTabs(); updateSub();
   document.getElementById('rt-in').classList.toggle('on', state.rankTab === 'in');
