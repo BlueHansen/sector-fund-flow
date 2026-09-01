@@ -288,6 +288,22 @@
   .bd-res-idx { color: var(--t3); font-size: 11px; flex: none; }
   .bd-res-diff { font-variant-numeric: tabular-nums; color: var(--t3); flex: none; font-size: 11px; }
   .bd-res-cd { color: var(--t4); font-size: 10px; }
+  /* 背离栏·板块下钻个股 */
+  .bd-dv-it { cursor: pointer; }
+  .bd-dv-it:hover .bd-acc-name { color: var(--t1); }
+  .bd-dv-chev { color: var(--t4); font-size: 10px; flex: none; }
+  .bd-dv-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px 10px 4px; margin: 3px 0 8px; }
+  .bd-dv-hint { font-size: 9.5px; color: var(--t4); display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .bd-dv-row { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 11.5px; }
+  .bd-dv-row + .bd-dv-row { border-top: 1px solid var(--sep); }
+  .bd-dv-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bd-dv-name i { font-style: normal; color: var(--t4); font-size: 9.5px; margin-left: 4px; }
+  .bd-dv-c { width: 46px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-dv-g { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-dv-l { width: 30px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  .bd-dv-l.hot { color: #f0b34e; font-weight: 700; }
+  .bd-dv-v { width: 56px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
 </style>
 </head>
 <body>
@@ -342,7 +358,7 @@
       <div class="bd-res-list" id="bdResList"><div class="bd-empty">等待数据…</div></div>
     </div>
     <div class="bd-sec" id="bdDivSec">
-      <div class="bd-sec-head"><span class="bd-sec-title">与指数背离</span><span class="bd-sec-hint">指数跌·资金进 = 独立行情方向 · 点指数切换参照</span></div>
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数背离</span><span class="bd-sec-hint">指数跌·资金进 = 独立行情 · 点板块看个股贡献/连板 · 点指数切参照</span></div>
       <div class="idx-row" id="bdDivIdx" style="margin:6px 0 0"></div>
       <div class="bd-acc">
         <div class="bd-acc-col" id="bdDivIn"></div>
@@ -838,7 +854,8 @@ function renderResonance() {
 }
 
 /* 与指数背离：排行榜 40 板块 vs 参照指数当日涨跌幅（零额外请求）
-   逆势流入 = 指数跌且板块资金净流入（独立行情）；逆势流出 = 指数涨且板块净流出（弱势） */
+   逆势流入 = 指数跌且板块资金净流入（独立行情）；逆势流出 = 指数涨且板块净流出（弱势）
+   板块行可点击 → 下钻个股（贡献度/连板高度/主力净额） */
 function renderDivergence() {
   const inEl = document.getElementById('bdDivIn'), outEl = document.getElementById('bdDivOut');
   const idxRow = document.getElementById('bdDivIdx');
@@ -858,18 +875,111 @@ function renderDivergence() {
   const byBk = new Map();
   for (const d of [...state.rankIn, ...state.rankOut]) if (d && d.f12) byBk.set(d.f12, d);
   const all = [...byBk.values()].filter(d => typeof d.f62 === 'number' && typeof d.f3 === 'number');
-  const item = (d, sign) => `<div class="bd-acc-item"><span class="bd-acc-name" title="${esc(d.f14 || d.f12)}">${esc(d.f14 || d.f12)} <span class="${clsOf(d.f3)}" style="font-size:10px">${pctTxt(d.f3)}</span></span><span class="bd-acc-val ${sign > 0 ? 'up' : 'down'}">${fmtVal(d.f62 / 1e8)}</span></div>`;
-  const mk = (title, list, emptyMsg) =>
-    `<div class="bd-acc-col-t">${title}</div>` + (list.length ? list.join('') : `<div class="bd-empty">${emptyMsg}</div>`);
-  const divIn = iv < 0 ? all.filter(d => d.f62 > 0).sort((a, b) => b.f62 - a.f62).slice(0, 5).map(d => item(d, 1)) : [];
-  const divOut = iv > 0 ? all.filter(d => d.f62 < 0).sort((a, b) => a.f62 - b.f62).slice(0, 5).map(d => item(d, -1)) : [];
-  inEl.innerHTML = mk(`逆势流入 · ${iv < 0 ? esc(ix.name) + ' ' + iv.toFixed(2) + '%' : '指数未跌'}`, divIn,
+  const item = (d, sign) => `<div class="bd-acc-item bd-dv-it" data-divbk="${esc(d.f12)}" title="点击展开个股：贡献度 / 连板高度 / 流入资金"><span class="bd-acc-name">${esc(d.f14 || d.f12)} <span class="${clsOf(d.f3)}" style="font-size:10px">${pctTxt(d.f3)}</span></span><span class="bd-acc-val ${sign > 0 ? 'up' : 'down'}">${fmtVal(d.f62 / 1e8)}</span><span class="bd-dv-chev">${BD.divOpen === d.f12 ? '▾' : '▸'}</span></div>`;
+  const withBlocks = (list, sign) => list.map(d =>
+    item(d, sign) + (BD.divOpen === d.f12 ? divStockBlock(d.f12, sign) : '')).join('');
+  const mk = (title, body, emptyMsg) =>
+    `<div class="bd-acc-col-t">${title}</div>` + (body || `<div class="bd-empty">${emptyMsg}</div>`);
+  const inList = iv < 0 ? all.filter(d => d.f62 > 0).sort((a, b) => b.f62 - a.f62).slice(0, 5) : [];
+  const outList = iv > 0 ? all.filter(d => d.f62 < 0).sort((a, b) => a.f62 - b.f62).slice(0, 5) : [];
+  inEl.innerHTML = mk(`逆势流入 · ${iv < 0 ? esc(ix.name) + ' ' + iv.toFixed(2) + '%' : '指数未跌'}`, withBlocks(inList, 1),
     iv < 0 ? '无' : '指数上涨中，无逆势流入');
-  outEl.innerHTML = mk(`逆势流出 · ${iv > 0 ? esc(ix.name) + ' +' + iv.toFixed(2) + '%' : '指数未涨'}`, divOut,
+  outEl.innerHTML = mk(`逆势流出 · ${iv > 0 ? esc(ix.name) + ' +' + iv.toFixed(2) + '%' : '指数未涨'}`, withBlocks(outList, -1),
     iv > 0 ? '无' : '指数下跌中，无逆势流出');
 }
 
-/* 共振/背离 chips 交互 */
+/* 背离板块·个股块：贡献度 = 流通市值×涨跌幅/Σ流通市值（拉动板块的点数）+ 连板高度 + 主力净额 */
+function divStockBlock(bk, dir) {
+  const c = BD.divStocks[bk];
+  const sec = [...state.rankIn, ...state.rankOut].find(d => d && d.f12 === bk);
+  const name = sec ? (sec.f14 || bk) : bk;
+  let body;
+  if (SNAP) body = '<div class="bd-empty">离线快照未采集背离个股</div>';
+  else if (!c) { body = '<div class="bd-empty">加载个股…</div>'; fetchDivStocks(bk); }
+  else if (c.err && !c.list.length) body = '<div class="bd-empty" style="color:#ff7a7a;cursor:pointer">加载失败 · 点击重试</div>';
+  else if (!c.list.length) body = '<div class="bd-empty">暂无数据</div>';
+  else {
+    const rows = [...c.list]
+      .sort((a, b) => dir > 0 ? b.contrib - a.contrib : a.contrib - b.contrib) // 流入看拉动、流出看拖累
+      .slice(0, 8);
+    body = rows.map(s => `
+      <div class="bd-dv-row">
+        <span class="bd-dv-name" title="${esc(s.name)}">${esc(s.name)}<i>${esc(s.code)}</i></span>
+        <span class="bd-dv-c ${clsOf(s.pct)}">${pctTxt(s.pct)}</span>
+        <span class="bd-dv-g ${clsOf(s.contrib)}">${(s.contrib > 0 ? '+' : '') + s.contrib.toFixed(2)}%</span>
+        <span class="bd-dv-l${s.lbc >= 2 ? ' hot' : ''}">${s.lbc >= 2 ? s.lbc + '板' : s.lbc === 1 ? '首板' : '—'}</span>
+        <span class="bd-dv-v ${clsOf(s.val)}">${s.val == null ? '--' : fmtVal(s.val)}</span>
+      </div>`).join('');
+  }
+  return `<div class="bd-dv-box" data-dvbox="1">
+    <div class="bd-dv-hint"><span>「${esc(name)}」${dir > 0 ? '拉动' : '拖累'}个股</span><span>涨跌 · 贡献 · 连板 · 净额(亿)</span></div>
+    ${body}</div>`;
+}
+async function fetchDivStocks(bk) {
+  if (SNAP || BD.divBusy) return;
+  const cache = BD.divStocks[bk];
+  if (cache && Date.now() - cache.ts < 25000) return; // 25s 缓存
+  BD.divBusy = true;
+  try {
+    const r = await jsonpRetry(divStockUrl(bk));
+    const diff = arr(r && r.data && r.data.diff)
+      .filter(d => d && d.f12 && typeof d.f3 === 'number' && typeof d.f21 === 'number');
+    const capSum = diff.reduce((a, b) => a + (b.f21 || 0), 0) || 1;
+    BD.divStocks[bk] = {
+      ts: Date.now(), err: false,
+      list: diff.map(d => ({
+        code: String(d.f12), name: d.f14 || d.f12,
+        pct: d.f3,
+        val: typeof d.f62 === 'number' ? d.f62 / 1e8 : null,
+        contrib: (d.f21 * d.f3) / capSum,          // 拉动板块的点数（流通市值加权）
+        lbc: BD.ztMap ? (BD.ztMap.get(String(d.f12)) || 0) : 0, // 连板高度（涨停池）
+      })),
+    };
+  } catch (e) {
+    if (!BD.divStocks[bk]) BD.divStocks[bk] = { ts: Date.now() - 20000, list: [], err: true };
+  }
+  BD.divBusy = false;
+  if (BD.divOpen === bk) renderDivergence();
+}
+
+/* 指数实时涨跌幅：独立 10s 轮询（不依赖主数据周期，主数据失败时指数照常跳动） */
+let idxQBusy = false;
+async function fetchIdxQuotes() {
+  if (SNAP || idxQBusy) return;
+  idxQBusy = true;
+  try {
+    const r = await jsonpRetry(idxQuoteUrl());
+    let changed = false;
+    for (const q of arr(r && r.data && r.data.diff)) {
+      if (typeof q.f3 !== 'number') continue;
+      const ix = state.indexes.find(x => x.secid.endsWith('.' + q.f12));
+      if (ix && ix.pts.length) {
+        const last = ix.pts[ix.pts.length - 1];
+        if (last.v !== q.f3) { last.v = q.f3; changed = true; } // 补丁最后一个点，主图曲线尾端同步跳动
+      }
+    }
+    if (changed) { renderIdxChips(); renderResonance(); }
+  } catch (e) { /* 下轮再试 */ }
+  idxQBusy = false;
+}
+
+/* 涨停池：code → 连板数（背离个股的连板高度；60s 刷新，跨日重置） */
+async function fetchZTPool() {
+  if (SNAP || BD.ztBusy) return;
+  BD.ztBusy = true;
+  try {
+    const day = todayStr();
+    const r = await jsonpRetry(ztPoolUrl(day), 2);
+    const pool = arr(r && r.data && r.data.pool);
+    if (pool.length) {
+      if (!BD.ztMap || BD.ztDate !== day) { BD.ztMap = new Map(); BD.ztDate = day; }
+      for (const s of pool) if (s && s.c) BD.ztMap.set(String(s.c), s.lbc || 0);
+    }
+  } catch (e) { /* 保留旧映射 */ }
+  BD.ztBusy = false;
+}
+
+/* 共振/背离 chips + 背离板块行 交互 */
 document.getElementById('bdResIdx').addEventListener('click', ev => {
   const c = ev.target.closest('[data-idxsec]');
   if (!c) return;
@@ -878,10 +988,20 @@ document.getElementById('bdResIdx').addEventListener('click', ev => {
   renderIdxChips();
   renderResonance();
 });
-document.getElementById('bdDivIdx').addEventListener('click', ev => {
-  const c = ev.target.closest('[data-divsec]');
-  if (!c) return;
-  BD.divIdx = c.getAttribute('data-divsec');
+document.getElementById('bdDivSec').addEventListener('click', ev => {
+  const box = ev.target.closest('[data-dvbox]');
+  if (box) { // 个股块内点击：仅处理"加载失败重试"
+    const c = BD.divStocks[BD.divOpen];
+    if (c && c.err && !c.list.length) { c.ts = 0; fetchDivStocks(BD.divOpen); }
+    return;
+  }
+  const chip = ev.target.closest('[data-divsec]');
+  if (chip) { BD.divIdx = chip.getAttribute('data-divsec'); renderDivergence(); return; }
+  const it = ev.target.closest('[data-divbk]');
+  if (!it) return;
+  const bk = it.getAttribute('data-divbk');
+  BD.divOpen = BD.divOpen === bk ? null : bk; // 再点一次收起
+  if (BD.divOpen) fetchDivStocks(bk);
   renderDivergence();
 });
 
@@ -1526,6 +1646,9 @@ const BD = {
   resIdx: null,                  // 共振栏选中的指数 secid（null=板块视图）
   mainStocks: null, mainStocksTs: 0, msBusy: false, // 主线代表股（个股共振筛选用）
   divIdx: '1.000001',            // 背离栏参照指数 secid（默认上证）
+  divOpen: null,                 // 背离栏展开的板块 BK（下钻个股）
+  divStocks: {}, divBusy: false, // bk -> {ts, list:[{code,name,pct,val,contrib,lbc}]}
+  ztMap: null, ztDate: '', ztBusy: false, // 涨停池 code -> 连板数（背离个股的连板高度）
 };
 
 // 宽基/风格类板块名称过滤：这类板块覆盖面天然极广（cnt 虚高），不算主线的"细分"
@@ -1982,6 +2105,12 @@ const INDEXES = [
   { name: '创业板指', secid: '0.399006', color: '#7c9dff' },
   { name: '科创50', secid: '1.000688', color: '#c58fff' },
 ];
+// 指数实时涨跌幅（1 个 ulist 请求 3 个指数，独立于主数据周期高频刷新）
+const idxQuoteUrl = () => `https://push2.eastmoney.com/api/qt/ulist.np/get?np=1&fltt=2&invt=2&secids=${INDEXES.map(i => i.secid).join(',')}&fields=f12,f14,f3&ut=${UT}`;
+// 涨停池（push2ex，支持 cb= JSONP）：lbc=连板数，构建 code→连板高度 映射
+const ztPoolUrl = date => `https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=500&sort=fbt%3Aasc&date=${date}`;
+// 背离板块成分股（按流通市值降序 TOP100：贡献度 = 流通市值×涨跌幅/Σ流通市值，即拉动板块的点数）
+const divStockUrl = bk => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=100&np=1&fltt=2&invt=2&fid=f21&fs=b:${bk}+f:!50&fields=f12,f13,f14,f3,f21,f62&ut=${UT}&po=1`;
 
 const ETF = {
   tab: 'ov',                                  // ov 总览 / td 走势 / rk 排行 / wa 观察
@@ -2480,6 +2609,11 @@ function loop() {
       pillEl.className = 'pill ' + cls;
       dotEl.className = 'dot' + (state.phase === 'trading' ? '' : ' idle');
     }
+    // 展开的背离板块：个股 30 秒续期（盘中实时刷新贡献度/连板/净额）
+    if (!SNAP && BD.divOpen && ['auction', 'trading'].includes(state.phase)) {
+      const c = BD.divStocks[BD.divOpen];
+      if (!c || Date.now() - c.ts > 30000) fetchDivStocks(BD.divOpen);
+    }
     // 展开的板块若有个股加载失败（或迷你图缺失），每 8 秒自动重试直到成功
     if (!SNAP && state.expanded) {
       const c = state.stockCache[state.expanded.bk];
@@ -2526,6 +2660,11 @@ if (!SNAP) {
   setInterval(() => {
     if (ETF.trend.length && (FETCHABLE.includes(state.phase) || !Object.keys(ETF.trendPts).length)) etfFetchKlines();
   }, 10000);
+  // 指数实时涨跌幅：独立 10s 轮询（主数据限流退避时指数照常跳动）；涨停池 60s（连板高度）
+  fetchIdxQuotes();
+  setInterval(() => { if (FETCHABLE.includes(state.phase)) fetchIdxQuotes(); }, 10000);
+  fetchZTPool();
+  setInterval(() => { if (FETCHABLE.includes(state.phase)) fetchZTPool(); }, 60000);
 } else {
   hydrateSnapshot(); // 离线快照：直接恢复数据，零网络请求
   etfInitState();
