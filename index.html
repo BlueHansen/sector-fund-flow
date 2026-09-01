@@ -265,6 +265,25 @@
     font-size: 12px; padding: 8px 16px; border-radius: 999px; opacity: 0; transition: all .25s;
     z-index: 99; pointer-events: none; }
   .etf-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== 指数叠加（主图恒定三线 + 细分共振栏） ===== */
+  .idx-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 7px 0 0; }
+  .idx-chip { font-size: 11px; line-height: 1; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--sep); display: inline-flex; align-items: center; gap: 6px;
+    color: var(--t2); font-variant-numeric: tabular-nums; }
+  .idx-chip i { width: 12px; height: 0; border-top: 2px dashed currentColor; flex: none; }
+  .idx-chip b { font-weight: 600; }
+  .lg-idx { display: inline-flex; align-items: center; gap: 4px; }
+  .lg-idx i { width: 12px; border-top: 2px dashed currentColor; height: 0; }
+  /* 细分·指数共振栏 */
+  .bd-res-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 6px; }
+  @media (max-width: 460px) { .bd-res-list { grid-template-columns: 1fr; } }
+  .bd-res-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    padding: 6px 0; border-bottom: 1px dashed var(--sep); font-size: 12px; }
+  .bd-res-item:last-child { border-bottom: none; }
+  .bd-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1b); }
+  .bd-res-idx { color: var(--t3); font-size: 11px; flex: none; }
+  .bd-res-diff { font-variant-numeric: tabular-nums; color: var(--t3); flex: none; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -294,11 +313,15 @@
       <button class="tab sm" id="wd-15" onclick="setWin(15)">15分</button>
       <button class="tab sm" id="wd-5" onclick="setWin(5)">5分</button>
     </div>
+    <div class="idx-row" id="idxRow" style="display:none"></div>
     <div class="sub" id="sub">概念板块 · 主力资金净额（亿元）· 5 净流入 / 5 净流出 · 10 秒刷新</div>
     <canvas id="cv"></canvas>
     <div class="foot">
       <span class="lg"><i style="background:#ff4d4f"></i>净流入</span>
       <span class="lg"><i style="background:#00b578"></i>净流出</span>
+      <span class="lg-idx" style="color:#f0b34e"><i></i>上证</span>
+      <span class="lg-idx" style="color:#7c9dff"><i></i>创业板</span>
+      <span class="lg-idx" style="color:#c58fff"><i></i>科创50</span>
       <span id="upd">等待数据…</span>
       <button class="snap-btn" id="snapBtn" title="把当前全部数据打包成独立 HTML，断网也能打开查看">保存快照</button>
     </div>
@@ -309,6 +332,11 @@
     <div class="bd-desc">选中走势图里的板块后，这里会自动展开同主线细分板块。</div>
     <div class="bd-note" id="bdNote">已积累 0 个盘中截面；默认只放细分板块，横轴压缩午休，纵轴保持真实净额口径。</div>
     <div class="bd-dual" id="bdDual"></div>
+    <div class="bd-sec" id="bdResSec">
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数共振</span><span class="bd-sec-hint">板块涨跌幅与指数的贴近度 · 差值越小共振越强</span></div>
+      <div class="idx-row" id="bdResIdx" style="margin:6px 0 0"></div>
+      <div class="bd-res-list" id="bdResList"><div class="bd-empty">等待数据…</div></div>
+    </div>
     <div class="bd-sec">
       <div class="bd-sec-head"><span class="bd-sec-title">近13分钟资金变化</span><span class="bd-sec-hint">看加速，不只看绝对值</span></div>
       <div class="bd-acc">
@@ -405,8 +433,8 @@ const stockKlineUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/stock/f
 const wlUrl = pn => `https://push2.eastmoney.com/api/qt/clist/get?pn=${pn}&pz=100&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:3&fields=f12,f14&ut=${UT}&po=1`;
 // 个股所属全部板块（行业+概念混合，需白名单过滤）
 const slistUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/slist/get?np=1&pn=1&pz=50&po=1&fltt=2&invt=2&spt=3&fields=f12,f14,f62,f3&secid=${mkt}.${code}&ut=${UT}`;
-// 批量板块最新主力净额（1 个请求更新全部细分数值）
-const ulistUrl = secids => `https://push2.eastmoney.com/api/qt/ulist.np/get?np=1&fltt=2&invt=2&secids=${secids}&fields=f12,f14,f62&ut=${UT}`;
+// 批量板块最新主力净额（1 个请求更新全部细分数值；f3 涨跌幅供指数共振）
+const ulistUrl = secids => `https://push2.eastmoney.com/api/qt/ulist.np/get?np=1&fltt=2&invt=2&secids=${secids}&fields=f12,f14,f62,f3&ut=${UT}`;
 // 概念板块成分个股（fid 排序字段：f22 涨速 / f62 主力净额 / f3 涨跌幅）
 const subStockUrl = (bk, fid) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=8&np=1&fltt=2&invt=2&fid=${fid}&fs=b:${bk}+f:!50&fields=f12,f13,f14,f3,f22,f62&ut=${UT}&po=1`;
 
@@ -420,6 +448,7 @@ const state = {
   selected: null,                              // 主图选中板块 BK（驱动细分模块）
   customBks: null,                             // 自选概念 BK 列表（localStorage 持久化）
   light: false,                                // 当前是否浅色主题（auto 按时间 / 手动覆盖）
+  indexes: [],                                 // 恒定叠加的指数线 [{name,color,pts:[{m,v:%}]}]
 };
 // 主题模式：auto=跟随时间（7:00-19:00 浅色），light/dark 手动锁定；localStorage 持久化
 let themeMode = 'auto';
@@ -665,6 +694,87 @@ function mkSector(d, dir, i) {
   };
 }
 
+/* ================= 指数叠加：拉取 / chips / 主图双轴绘制 ================= */
+let idxBusy = false, idxEver = false;
+async function fetchIndexes(myGen) {
+  if (SNAP || idxBusy) return;
+  idxBusy = true;
+  try {
+    const results = await Promise.all(INDEXES.map(async (ix, i) => {
+      if (i) await new Promise(r => setTimeout(r, i * 120)); // 错峰
+      try {
+        const r = await jsonpRetry(idxTrendUrl(ix.secid));
+        if (fetchGen !== myGen) return null;
+        const d = r && r.data;
+        const pre = d && d.preClose;
+        if (!pre) return null;
+        const pts = [];
+        for (const line of arr(d && d.trends)) { // "2026-09-01 09:30,3986.10"
+          const ci = line.lastIndexOf(',');
+          if (ci < 8) continue;
+          const v = parseFloat(line.slice(ci + 1));
+          if (!isFinite(v)) continue;
+          const m = timeToMinute(line.slice(ci - 5, ci));
+          if (m >= 0 && m <= TOTAL_MIN) pts.push({ m, v: (v / pre - 1) * 100 }); // 涨跌幅%
+        }
+        return pts.length >= 2 ? { name: ix.name, color: ix.color, pts } : null;
+      } catch (e) { return null; }
+    }));
+    if (fetchGen !== myGen) return;
+    const ok = results.filter(Boolean);
+    if (ok.length) { // 单个失败保留旧线
+      const old = new Map(state.indexes.map(x => [x.name, x]));
+      state.indexes = INDEXES.map(ix => {
+        const n = ok.find(x => x.name === ix.name);
+        return n || old.get(ix.name) || null;
+      }).filter(Boolean);
+      idxEver = true;
+      renderIdxChips();
+      renderResonance();
+    }
+  } finally { idxBusy = false; }
+}
+/* 指数 chips：标题区一行 + 共振栏复用（同一渲染函数，两个容器） */
+function renderIdxChips() {
+  const html = state.indexes.map(ix => {
+    const v = ix.pts.length ? ix.pts[ix.pts.length - 1].v : null;
+    return `<span class="idx-chip" style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></span>`;
+  }).join('');
+  const row = document.getElementById('idxRow');
+  if (row) { row.innerHTML = html; row.style.display = state.indexes.length ? '' : 'none'; }
+  const res = document.getElementById('bdResIdx');
+  if (res) res.innerHTML = html;
+}
+/* 细分·指数共振：板块涨跌幅 vs 三大指数，差值最小 = 共振指数 */
+function renderResonance() {
+  const list = document.getElementById('bdResList');
+  if (!list) return;
+  const idxReady = state.indexes.filter(ix => ix.pts.length);
+  if (!idxReady.length || !BD.subs.length) {
+    list.innerHTML = '<div class="bd-empty">等待指数或细分数据…</div>';
+    return;
+  }
+  const idxVals = idxReady.map(ix => ({ name: ix.name.replace('指数', '').replace('指', ''), v: ix.pts[ix.pts.length - 1].v }));
+  const rows = BD.subs
+    .map(s => {
+      if (s.pct == null) return null;
+      let best = null;
+      for (const ix of idxVals) {
+        const diff = Math.abs(s.pct - ix.v);
+        if (!best || diff < best.diff) best = { name: ix.name, diff };
+      }
+      return { name: s.name, pct: s.pct, idx: best.name, diff: best.diff };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.diff - b.diff);
+  if (!rows.length) { list.innerHTML = '<div class="bd-empty">暂无涨跌幅数据</div>'; return; }
+  list.innerHTML = rows.slice(0, 8).map(r => `
+    <div class="bd-res-item">
+      <span class="bd-res-name" title="${esc(r.name)}">${esc(r.name)} <span class="${clsOf(r.pct)}">${pctTxt(r.pct)}</span></span>
+      <span class="bd-res-idx">↔ ${esc(r.idx)} <span class="bd-res-diff">差${r.diff.toFixed(2)}%</span></span>
+    </div>`).join('');
+}
+
 async function fetchCycle(force) {
   if (SNAP) return; // 离线快照：不发任何请求
   if (fetching && !force) return;
@@ -707,6 +817,7 @@ async function fetchCycle(force) {
       renderRank();
       try { renderDual(); if (cycleCount % 2 === 0) refreshSubKlines(); } catch (e) {}
       cycleCount++;
+      fetchIndexes(myGen); // 指数线恒定叠加（异步不阻塞）
       updEl.textContent = '更新 ' + hhmmss(new Date());
       return;
     }
@@ -747,6 +858,7 @@ async function fetchCycle(force) {
     const curList = state.rankTab === 'in' ? state.rankIn : state.rankOut;
     if (state.expanded && cycleCount % 2 === 0 &&
         curList.some(d => d.f12 === state.expanded.bk)) refreshExpanded();
+    fetchIndexes(myGen); // 指数线恒定叠加（异步不阻塞）
     updEl.textContent = '更新 ' + hhmmss(new Date());
   } catch (e) {
     failStreak++;
@@ -799,7 +911,8 @@ function drawnCount(sec, now) {
 /* ================= 绘制 ================= */
 function geo() {
   const W = CV.clientWidth, H = CV.clientHeight;
-  const plotL = 40, plotR = W - 10, plotT = 12, plotB = H - 22;
+  const hasIdx = state.indexes.length > 0;
+  const plotL = 40, plotR = W - (hasIdx ? 46 : 10), plotT = 12, plotB = H - 22;
   return { W, H, plotL, plotR, plotT, plotB, plotW: plotR - plotL, plotH: plotB - plotT,
            zeroY: plotT + (plotB - plotT) * 0.35 };
 }
@@ -943,6 +1056,41 @@ function drawChart() {
   for (const s of state.sectors) if (s.bk !== selBk) drawSeries(s, true);
   for (const s of state.sectors) if (s.bk === selBk) drawSeries(s, false);
 
+  /* --- 指数叠加（恒定三线，双轴：0% 对齐资金 0 轴，右轴对称刻度） --- */
+  if (state.indexes.length) {
+    let pctMax = 0.5;
+    for (const ix of state.indexes) for (const p of ix.pts)
+      if (Math.abs(p.v) > pctMax) pctMax = Math.abs(p.v);
+    pctMax = niceStep(pctMax); // 右轴刻度取整
+    // 0% 对齐资金 0 轴；幅度取 0.35×plotH（0 轴在 35% 高度，正侧顶格不越界，负侧自然留白）
+    const YI = v => g.zeroY - (v / pctMax) * (g.plotH * 0.35);
+    // 右轴刻度（%）
+    ctx.font = '9.5px system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    for (const k of [1, -1]) {
+      const y = Math.max(g.plotT + 5, Math.min(g.plotB - 5, YI(k * pctMax))); // 刻度防越界
+      ctx.fillStyle = UI.txtDim;
+      ctx.fillText((k > 0 ? '+' : '-') + pctMax + '%', g.plotR + 5, y);
+    }
+    for (const ix of state.indexes) {
+      const visible = ix.pts.filter(p => p.m >= dom.mLo && p.m <= dom.mHi);
+      if (visible.length < 2) continue;
+      ctx.save();
+      ctx.setLineDash([5, 3]);
+      ctx.strokeStyle = ix.color; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.9;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      visible.forEach((p, j) => j
+        ? ctx.lineTo(xOf(p.m), YI(p.v))
+        : ctx.moveTo(xOf(p.m), YI(p.v)));
+      ctx.stroke();
+      ctx.restore();
+      const last = visible[visible.length - 1];
+      labels.push({ s: { name: ix.name, color: ix.color }, isIdx: true,
+        ex: xOf(last.m), ey: YI(last.v), lastV: last.v, dim: false });
+    }
+  }
+
   /* --- 端点标签：按 Y 排序后推开防重叠 --- */
   ctx.font = '11px system-ui, sans-serif';
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
@@ -959,34 +1107,45 @@ function drawChart() {
         if (labels[i].ly > labels[i + 1].ly - gap) labels[i].ly = labels[i + 1].ly - gap;
     }
     for (const L of labels) {
-      const text = L.s.name + ' ' + fmtVal(L.lastV);
+      const text = L.isIdx
+        ? L.s.name + ' ' + (L.lastV > 0 ? '+' : '') + L.lastV.toFixed(2) + '%'
+        : L.s.name + ' ' + fmtVal(L.lastV);
+      ctx.font = (L.isIdx ? '10px' : '11px') + ' system-ui, sans-serif';
       const tw = ctx.measureText(text).width;
-      const tx = Math.min(L.ex + 8, g.W - tw - 4);
+      const tx = Math.min(L.ex + 8, g.plotR - tw - 2);
       ctx.save();
-      ctx.globalAlpha = L.dim ? 0.45 : 1; // 选中标签全亮，其余淡化
+      ctx.globalAlpha = L.dim ? 0.45 : 1; // 选中标签全亮，其余淡化；指数线恒定不淡化
       if (Math.abs(L.ly - L.ey) > 6) { // 标签被推离端点：画细引导线，标明归属（流速模式标签聚在0轴附近时关键）
         ctx.strokeStyle = L.s.color;
         ctx.globalAlpha *= 0.5;
         ctx.lineWidth = 0.8;
+        if (L.isIdx) ctx.setLineDash([3, 2]); // 指数引导线也用虚线，与实线板块区分
         ctx.beginPath();
         ctx.moveTo(L.ex + 3, L.ey);
         ctx.lineTo(tx - 2, L.ly);
         ctx.stroke();
+        ctx.setLineDash([]);
         ctx.globalAlpha = L.dim ? 0.45 : 1;
       }
-      ctx.fillStyle = L.s.color; // 端点小圆点（选中加大）
-      ctx.beginPath(); ctx.arc(L.ex, L.ey, L.dim ? 2.6 : 3.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = L.s.color; // 端点小圆点（选中加大；指数为空心小方块）
+      if (L.isIdx) {
+        ctx.fillRect(L.ex - 2, L.ey - 2, 4, 4);
+      } else {
+        ctx.beginPath(); ctx.arc(L.ex, L.ey, L.dim ? 2.6 : 3.4, 0, Math.PI * 2); ctx.fill();
+      }
       fillRoundRect(tx - 3, L.ly - 8, tw + 6, 16, 4, UI.labelBg); // 底衬
-      const el = now - L.s.flashStart; // 数值闪烁：红/绿背景 0.8s 渐隐
-      if (el >= 0 && el < 800) {
-        const a = (1 - el / 800) * 0.55;
-        fillRoundRect(tx - 3, L.ly - 8, tw + 6, 16, 4,
-          L.s.flashDir > 0 ? `rgba(255,60,60,${a})` : `rgba(0,181,120,${a})`);
+      if (!L.isIdx) {
+        const el = now - L.s.flashStart; // 数值闪烁：红/绿背景 0.8s 渐隐
+        if (el >= 0 && el < 800) {
+          const a = (1 - el / 800) * 0.55;
+          fillRoundRect(tx - 3, L.ly - 8, tw + 6, 16, 4,
+            L.s.flashDir > 0 ? `rgba(255,60,60,${a})` : `rgba(0,181,120,${a})`);
+        }
       }
       ctx.fillStyle = L.s.color;
       ctx.fillText(text, tx, L.ly);
       ctx.restore();
-      hitTargets.labels.push({ x: tx - 4, y: L.ly - 10, w: tw + 8, h: 20, bk: L.s.bk }); // 标签命中区
+      if (!L.isIdx) hitTargets.labels.push({ x: tx - 4, y: L.ly - 10, w: tw + 8, h: 20, bk: L.s.bk }); // 标签命中区（指数不可选中）
     }
   }
 
@@ -1349,9 +1508,10 @@ async function loadBreakdown(bk) {
             for (const d of arr(res && res.data && res.data.diff)) {
               if (!d || !d.f12 || d.f12 === bk || !BD.wl.has(d.f12)) continue; // 白名单过滤 + 排除主线自身
               if (BROAD_STYLE.test(d.f14 || '')) continue; // 剔除宽基/风格板块（融资融券、MSCI、昨日涨停等）
-              const c = counts.get(d.f12) || { bk: d.f12, name: d.f14 || d.f12, cnt: 0, f62: 0 };
+              const c = counts.get(d.f12) || { bk: d.f12, name: d.f14 || d.f12, cnt: 0, f62: 0, pct: null };
               c.cnt++;
               if (typeof d.f62 === 'number') c.f62 = d.f62; // 概念当前主力净额（并列排序用）
+              if (typeof d.f3 === 'number') c.pct = d.f3;   // 板块涨跌幅（指数共振用）
               counts.set(d.f12, c);
             }
           } catch (e) { fails++; }
@@ -1371,7 +1531,7 @@ async function loadBreakdown(bk) {
       return;
     }
     BD.subs = base.subs.map(s => ({ bk: s.bk, name: s.name, cnt: s.cnt, points: [],
-      lastV: typeof s.f62 === 'number' ? s.f62 / 1e8 : null, d13: null,
+      lastV: typeof s.f62 === 'number' ? s.f62 / 1e8 : null, d13: null, pct: s.pct != null ? s.pct : null,
       stOpen: false, stSort: 'speed', stocks: null, stTs: 0, stLoading: false, stError: false }));
     renderDual();
     buildBdGrid();
@@ -1580,8 +1740,10 @@ async function refreshSubValues() {
     for (const d of arr(r && r.data && r.data.diff)) {
       const sub = BD.subs.find(s => s.bk === d.f12);
       if (sub && typeof d.f62 === 'number') sub.lastV = d.f62 / 1e8;
+      if (sub && typeof d.f3 === 'number') sub.pct = d.f3; // 同步更新涨跌幅（共振栏）
     }
     updateCardVals();
+    renderResonance();
   } catch (e) { /* 下轮再更新 */ }
 }
 function updateCardVals() {
@@ -1626,6 +1788,7 @@ function collectSnapshot() {
     customBks: loadCustom(),
     sectors: state.sectors.map(s => ({ bk: s.bk, name: s.name, dir: s.dir, color: s.color,
       points: s.points, vel: s.vel })),
+    indexes: state.indexes.map(ix => ({ name: ix.name, color: ix.color, pts: ix.pts })),
     rankIn: state.rankIn, rankOut: state.rankOut,
     bdVisited: BD.visited,
     stockCache: sc,
@@ -1679,6 +1842,8 @@ function hydrateSnapshot() {
   state.locked = true; state.everFetched = true;
   state.stockCache = S.stockCache || {};
   BD.visited = S.bdVisited || {};
+  state.indexes = (S.indexes || []).filter(ix => ix && ix.pts && ix.pts.length); // 恢复指数线（离线恒显）
+  renderIdxChips();
   updateTabs(); updateSub();
   document.getElementById('rt-in').classList.toggle('on', state.rankTab === 'in');
   document.getElementById('rt-out').classList.toggle('on', state.rankTab === 'out');
@@ -1693,6 +1858,14 @@ function hydrateSnapshot() {
 const etfScanUrl = pn => `https://push2.eastmoney.com/api/qt/clist/get?pn=${pn}&pz=100&np=1&fltt=2&invt=2&fid=f62&po=1&fs=b:MK0021,b:MK0022,b:MK0023,b:MK0024&fields=f12,f13,f14,f62&ut=${UT}`;
 // ETF 分钟级资金 kline（与主图同接口，secid = 市场.代码）
 const etfKlineUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/stock/fflow/kline/get?lmt=0&klt=1&secid=${mkt}.${code}&fields1=f1,f2,f3,f7&fields2=f51,f52&ut=${UT}`;
+// 指数当日分时（trends2：每分钟价格 + preClose 昨收，涨跌幅 = (p/pre-1)*100）
+const idxTrendUrl = secid => `https://push2.eastmoney.com/api/qt/stock/trends2/get?secid=${secid}&fields1=f1,f2,f3,f8&fields2=f51,f53&ndays=1&ut=${UT}`;
+// 主图恒定叠加的三大指数（双轴：右轴涨跌幅%，0 轴与资金 0 轴对齐）
+const INDEXES = [
+  { name: '上证指数', secid: '1.000001', color: '#f0b34e' },
+  { name: '创业板指', secid: '0.399006', color: '#7c9dff' },
+  { name: '科创50', secid: '1.000688', color: '#c58fff' },
+];
 
 const ETF = {
   tab: 'ov',                                  // ov 总览 / td 走势 / rk 排行 / wa 观察
