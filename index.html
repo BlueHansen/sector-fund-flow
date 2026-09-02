@@ -331,13 +331,27 @@
   .lg-idx i { width: 12px; border-top: 2px dashed currentColor; height: 0; }
   /* 细分·指数共振栏 */
   .bd-res-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 6px; }
-  @media (max-width: 460px) { .bd-res-list { grid-template-columns: 1fr; } }
-  .bd-res-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-    padding: 6px 0; border-bottom: 1px dashed var(--sep); font-size: 12px; }
-  .bd-res-item:last-child { border-bottom: none; }
-  .bd-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1b); }
-  .bd-res-idx { color: var(--t3); font-size: 11px; flex: none; }
-  .bd-res-diff { font-variant-numeric: tabular-nums; color: var(--t3); flex: none; font-size: 11px; }
+  .bd-res-wrap { min-width: 0; border-bottom: 1px dashed var(--sep); }
+  .bd-res-item { display: flex; align-items: center; gap: 7px; padding: 7px 0; font-size: 12px; }
+  .bd-res-main { flex: 1; min-width: 0; }
+  .bd-res-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1b); }
+  .bd-res-meta { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; color: var(--t3); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .bd-res-score { color: var(--link); font-size: 11px; font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
+  .bd-res-open { color: var(--link); background: rgba(77,157,255,.08); border: 1px solid rgba(77,157,255,.32);
+    border-radius: 999px; padding: 4px 8px; font: inherit; font-size: 10px; cursor: pointer; flex: none; }
+  .bd-res-open.on { color: var(--tabon); border-color: rgba(255,77,79,.4); background: rgba(255,77,79,.1); }
+  .bd-res-stock-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px 9px 4px; margin: 0 0 8px; }
+  .bd-res-stock-hint { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px;
+    color: var(--t4); font-size: 9.5px; }
+  .bd-res-stock-row { display: flex; align-items: center; gap: 7px; padding: 5px 0; font-size: 11.5px; }
+  .bd-res-stock-row + .bd-res-stock-row { border-top: 1px solid var(--sep); }
+  .bd-res-stock-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .bd-res-stock-name b { color: var(--t1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bd-res-stock-name i { color: var(--t4); font-size: 9.5px; font-style: normal; }
+  .bd-res-stock-same, .bd-res-stock-score { width: 58px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  .bd-res-stock-score { color: var(--link); font-weight: 700; }
   .bd-res-cd { color: var(--t4); font-size: 10px; }
   /* 背离栏·板块下钻个股 */
   .bd-dv-it { cursor: pointer; }
@@ -355,6 +369,16 @@
   .bd-dv-l { width: 30px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
   .bd-dv-l.hot { color: #f0b34e; font-weight: 700; }
   .bd-dv-v { width: 56px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
+  @media (max-width: 560px) {
+    .bd-res-list { grid-template-columns: 1fr; }
+    #bdDivSec .bd-acc { grid-template-columns: 1fr; gap: 12px; }
+    #bdDivSec .bd-acc-sep { display: none; }
+    #bdDivSec .bd-dv-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 8px; align-items: center; }
+    #bdDivSec .bd-dv-name { grid-column: 1 / -1; width: 100%; white-space: normal; overflow: visible;
+      text-overflow: clip; color: var(--t1); font-weight: 600; }
+    #bdDivSec .bd-dv-c, #bdDivSec .bd-dv-g, #bdDivSec .bd-dv-l, #bdDivSec .bd-dv-v {
+      width: auto; min-width: 0; text-align: left; }
+  }
 </style>
 </head>
 <body>
@@ -407,7 +431,7 @@
     <div class="bd-note" id="bdNote">已积累 0 个盘中截面；默认只放细分板块，横轴压缩午休，纵轴保持真实净额口径。</div>
     <div class="bd-dual" id="bdDual"></div>
     <div class="bd-sec" id="bdResSec">
-      <div class="bd-sec-head"><span class="bd-sec-title">与指数共振</span><span class="bd-sec-hint">板块涨跌幅与指数的贴近度 · 点指数筛个股</span></div>
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数共振</span><span class="bd-sec-hint">比较盘中曲线同频度 · 点指数限定参照</span></div>
       <div class="idx-row" id="bdResIdx" style="margin:6px 0 0"></div>
       <div class="bd-res-list" id="bdResList"><div class="bd-empty">等待数据…</div></div>
     </div>
@@ -850,6 +874,7 @@ function switchSource(id) {
   state.rankIn = []; state.rankOut = []; state.rankMulti = {}; state.rankMultiErr = {}; state.expanded = null; state.stockCache = {};
   state.selected = null;                    // 切源重置选中 → 重新锁定后自动选新榜净流入 TOP1
   BD.mainBk = null; BD.subs = []; BD.snapshots = []; BD.lastSnap = 0; BD.expanded = false;
+  BD.resIdx = null; BD.resOpen = null; BD.resTrendTs = 0; BD.resStocks = {}; BD.resStockBusy.clear();
   showBdSkeleton();
   document.getElementById('rankList').innerHTML = '<div class="loading">加载中…</div>';
   updEl.textContent = '切换数据源…';
@@ -875,6 +900,63 @@ function mkSector(d, dir, i) {
 
 /* ================= 指数叠加：拉取 / chips / 主图双轴绘制 ================= */
 let idxBusy = false, idxEver = false;
+
+/* trends2 响应 → 盘中涨跌幅曲线；板块、指数、个股共用。 */
+function parsePriceTrend(data) {
+  const pre = data && data.preClose;
+  if (!pre) return [];
+  const pts = [];
+  for (const line of arr(data && data.trends)) {
+    const ci = line.lastIndexOf(',');
+    if (ci < 8) continue;
+    const price = parseFloat(line.slice(ci + 1));
+    if (!isFinite(price)) continue;
+    const m = timeToMinute(line.slice(ci - 5, ci));
+    if (m >= 0 && m <= TOTAL_MIN) pts.push({ m, v: (price / pre - 1) * 100 });
+  }
+  return pts;
+}
+
+function pearson(xs, ys) {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 2) return 0;
+  const ax = xs.reduce((a, b) => a + b, 0) / n;
+  const ay = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, dx2 = 0, dy2 = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - ax, dy = ys[i] - ay;
+    num += dx * dy; dx2 += dx * dx; dy2 += dy * dy;
+  }
+  return dx2 > 0 && dy2 > 0 ? num / Math.sqrt(dx2 * dy2) : 0;
+}
+
+/* 同频 = 5 分钟涨跌方向一致为主（70%）+ 变化节奏相关性为辅（30%）。 */
+function resonanceOf(aPts, bPts) {
+  if (!aPts || !bPts || aPts.length < 3 || bPts.length < 3) return null;
+  const a = new Map(aPts.map(p => [p.m, p.v]));
+  const b = new Map(bPts.map(p => [p.m, p.v]));
+  const common = [...a.keys()].filter(m => b.has(m)).sort((x, y) => x - y);
+  if (common.length < 7) return null;
+  const step = common[common.length - 1] - common[0] >= 30 ? 5 : 1;
+  const xs = [], ys = [];
+  let same = 0, useful = 0;
+  const eps = .008;
+  for (const m of common) {
+    if (!a.has(m - step) || !b.has(m - step)) continue;
+    const dx = a.get(m) - a.get(m - step);
+    const dy = b.get(m) - b.get(m - step);
+    xs.push(dx); ys.push(dy);
+    if (Math.abs(dx) < eps && Math.abs(dy) < eps) continue;
+    useful++;
+    if (Math.sign(Math.abs(dx) < eps ? 0 : dx) === Math.sign(Math.abs(dy) < eps ? 0 : dy)) same++;
+  }
+  if (xs.length < 6 || useful < 4) return null;
+  const direction = same / useful;
+  const corr = Math.max(-1, Math.min(1, pearson(xs, ys)));
+  const score = Math.round(Math.max(0, Math.min(100, direction * 70 + Math.max(0, corr) * 30)));
+  return { score, direction: Math.round(direction * 100), corr, samples: xs.length, step };
+}
+
 async function fetchIndexes(myGen) {
   if (SNAP || idxBusy) return;
   idxBusy = true;
@@ -884,18 +966,7 @@ async function fetchIndexes(myGen) {
       try {
         const r = await jsonpRetry(idxTrendUrl(ix.secid));
         if (fetchGen !== myGen) return null;
-        const d = r && r.data;
-        const pre = d && d.preClose;
-        if (!pre) return null;
-        const pts = [];
-        for (const line of arr(d && d.trends)) { // "2026-09-01 09:30,3986.10"
-          const ci = line.lastIndexOf(',');
-          if (ci < 8) continue;
-          const v = parseFloat(line.slice(ci + 1));
-          if (!isFinite(v)) continue;
-          const m = timeToMinute(line.slice(ci - 5, ci));
-          if (m >= 0 && m <= TOTAL_MIN) pts.push({ m, v: (v / pre - 1) * 100 }); // 涨跌幅%
-        }
+        const pts = parsePriceTrend(r && r.data);
         return pts.length >= 2 ? { secid: ix.secid, name: ix.name, color: ix.color, pts } : null;
       } catch (e) { return null; }
     }));
@@ -927,24 +998,90 @@ function renderIdxChips() {
   renderDivergence();
 }
 
-/* 主线代表股 TOP30（个股共振筛选用，60s 缓存） */
-async function ensureMainStocks() {
-  if (SNAP || BD.msBusy || !BD.mainBk) return;
-  if (BD.mainStocks && Date.now() - BD.mainStocksTs < 60000) return;
-  BD.msBusy = true;
+/* 细分板块盘中价格曲线：60s 缓存，专供共振评分。 */
+async function refreshResonanceTrends(force) {
+  if (SNAP || BD.resTrendBusy || !BD.subs.length) return;
+  if (!force && Date.now() - BD.resTrendTs < 55000 && BD.subs.every(s => s.trendPts && s.trendPts.length)) return;
+  BD.resTrendBusy = true;
+  const gen = BD.gen;
   try {
-    const r = await jsonpRetry(`https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&np=1&fltt=2&invt=2&fid=f62&fs=b:${BD.mainBk}+f:!50&fields=f12,f13,f14,f3,f62&ut=${UT}&po=1`);
-    BD.mainStocks = arr(r && r.data && r.data.diff).filter(d => d && d.f12).map(d => ({
-      code: String(d.f12), name: d.f14 || d.f12,
-      pct: typeof d.f3 === 'number' ? d.f3 : null,
-      val: typeof d.f62 === 'number' ? d.f62 / 1e8 : null,
-    }));
-    BD.mainStocksTs = Date.now();
-  } catch (e) { /* 保留旧数据 */ }
-  BD.msBusy = false;
+    for (let i = 0; i < BD.subs.length; i += 4) {
+      await Promise.all(BD.subs.slice(i, i + 4).map(async (sub, j) => {
+        if (j) await sleep(j * 90);
+        try {
+          const r = await jsonpRetry(idxTrendUrl('90.' + sub.bk));
+          if (BD.gen !== gen) return;
+          const pts = parsePriceTrend(r && r.data);
+          if (pts.length >= 2) sub.trendPts = pts;
+        } catch (e) { /* 单个失败保留旧曲线 */ }
+      }));
+      if (BD.gen !== gen) return;
+      await sleep(120);
+    }
+    BD.resTrendTs = Date.now();
+    if (BD.mainBk) BD.visited[BD.mainBk] = BD.subs.map(s => ({ ...s }));
+    renderResonance();
+  } finally { BD.resTrendBusy = false; }
 }
 
-/* 细分·指数共振：默认板块视图（差值最小=共振指数）；点指数 chip 切个股视图 */
+/* 打开某个共振板块后，拉代表股及各自的盘中价格曲线。 */
+async function fetchResStocks(bk, force) {
+  if (SNAP || BD.resStockBusy.has(bk)) return;
+  const old = BD.resStocks[bk];
+  if (!force && old && !old.err && Date.now() - old.ts < 60000) return;
+  BD.resStockBusy.add(bk);
+  BD.resStocks[bk] = { ts: old ? old.ts : 0, list: old ? old.list : [], loading: true, err: false };
+  renderResonance();
+  const gen = BD.gen;
+  try {
+    const r = await jsonpRetry(subStockUrl(bk, 'f62'));
+    if (BD.gen !== gen) return;
+    const stocks = arr(r && r.data && r.data.diff).filter(d => d && d.f12).map(d => ({
+      code: String(d.f12),
+      mkt: d.f13 != null ? d.f13 : (String(d.f12).charAt(0) === '6' ? 1 : 0),
+      name: d.f14 || d.f12,
+      pct: typeof d.f3 === 'number' ? d.f3 : null,
+      val: typeof d.f62 === 'number' ? d.f62 / 1e8 : null,
+      trendPts: [],
+    })).slice(0, 8);
+    for (let i = 0; i < stocks.length; i += 4) {
+      await Promise.all(stocks.slice(i, i + 4).map(async (s, j) => {
+        if (j) await sleep(j * 90);
+        try {
+          const tr = await jsonpRetry(idxTrendUrl(s.mkt + '.' + s.code));
+          if (BD.gen !== gen) return;
+          s.trendPts = parsePriceTrend(tr && tr.data);
+        } catch (e) { /* 该股显示为曲线不足 */ }
+      }));
+      if (BD.gen !== gen) return;
+      await sleep(120);
+    }
+    BD.resStocks[bk] = { ts: Date.now(), list: stocks, loading: false, err: false };
+  } catch (e) {
+    BD.resStocks[bk] = { ts: Date.now() - 50000, list: old ? old.list : [], loading: false, err: true };
+  } finally {
+    BD.resStockBusy.delete(bk);
+    if (BD.gen === gen && BD.resOpen === bk) renderResonance();
+  }
+}
+
+function resonanceStockBlock(bk, ix) {
+  if (SNAP) return '<div class="bd-res-stock-box"><div class="bd-empty">离线快照未采集共振个股</div></div>';
+  const c = BD.resStocks[bk];
+  if (!c) { fetchResStocks(bk); return '<div class="bd-res-stock-box"><div class="bd-empty">加载个股曲线…</div></div>'; }
+  if (c.loading && !c.list.length) return '<div class="bd-res-stock-box"><div class="bd-empty">加载个股曲线…</div></div>';
+  if (c.err && !c.list.length) return `<div class="bd-res-stock-box"><div class="bd-empty" style="color:#ff7a7a;cursor:pointer" data-resretry="${esc(bk)}">加载失败 · 点击重试</div></div>`;
+  const rows = c.list.map(s => ({ ...s, sim: resonanceOf(s.trendPts, ix.pts) }))
+    .sort((a, b) => (b.sim ? b.sim.score : -1) - (a.sim ? a.sim.score : -1));
+  const body = rows.map(s => `<div class="bd-res-stock-row">
+    <span class="bd-res-stock-name"><b title="${esc(s.name)}">${esc(s.name)} <span class="${clsOf(s.pct)}">${pctTxt(s.pct)}</span></b><i>${esc(s.code)}</i></span>
+    <span class="bd-res-stock-same">${s.sim ? '同向' + s.sim.direction + '%' : '曲线不足'}</span>
+    <span class="bd-res-stock-score">${s.sim ? s.sim.score + '%' : '--'}</span>
+  </div>`).join('');
+  return `<div class="bd-res-stock-box"><div class="bd-res-stock-hint"><span>与${esc(ix.name)}同频的代表股</span><span>同向率 · 同频分</span></div>${body || '<div class="bd-empty">暂无个股数据</div>'}</div>`;
+}
+
+/* 细分·指数共振：按盘中曲线同向率与相关性排序；指数 chip 只限定参照。 */
 function renderResonance() {
   const list = document.getElementById('bdResList');
   if (!list) return;
@@ -953,54 +1090,37 @@ function renderResonance() {
     list.innerHTML = '<div class="bd-empty">等待指数或细分数据…</div>';
     return;
   }
-  /* --- 个股视图：主线代表股按 |个股涨幅 − 指数涨幅| 升序 = 与指数走得最近的个股 --- */
-  if (BD.resIdx) {
-    const ix = idxReady.find(x => x.secid === BD.resIdx);
-    if (!ix) { BD.resIdx = null; }
-    else {
-      if (SNAP) { list.innerHTML = '<div class="bd-empty">离线快照未采集个股共振数据</div>'; return; }
-      const idxV = ix.pts[ix.pts.length - 1].v;
-      if (!BD.mainStocks) {
-        list.innerHTML = '<div class="bd-empty">加载个股…</div>';
-        ensureMainStocks().then(() => renderResonance());
-        return;
-      }
-      if (Date.now() - BD.mainStocksTs > 60000) ensureMainStocks().then(() => renderResonance()); // 静默续期
-      const mainName = (state.sectors.find(s => s.bk === BD.mainBk) || {}).name || '主线';
-      const rows = BD.mainStocks
-        .filter(s => s.pct != null)
-        .map(s => ({ ...s, diff: Math.abs(s.pct - idxV) }))
-        .sort((a, b) => a.diff - b.diff)
-        .slice(0, 8);
-      list.innerHTML = `<div class="bd-res-item" style="border-bottom:none;padding-bottom:2px"><span class="bd-res-name" style="color:var(--t3);font-size:10.5px">「${esc(mainName)}」代表股 ↔ ${esc(ix.name)} ${(idxV > 0 ? '+' : '') + idxV.toFixed(2)}% · 按贴近度排序</span></div>` +
-        (rows.length ? rows.map(r => `
-    <div class="bd-res-item">
-      <span class="bd-res-name" title="${esc(r.name)}">${esc(r.name)} <span class="bd-res-cd">${esc(r.code)}</span> <span class="${clsOf(r.pct)}">${pctTxt(r.pct)}</span></span>
-      <span class="bd-res-idx">差${r.diff.toFixed(2)}% <span class="${clsOf(r.val)}">${r.val == null ? '' : fmtVal(r.val)}</span></span>
-    </div>`).join('') : '<div class="bd-empty">暂无个股数据</div>');
-      return;
-    }
-  }
-  /* --- 板块视图（默认） --- */
-  const idxVals = idxReady.map(ix => ({ name: ix.name.replace('指数', '').replace('指', ''), v: ix.pts[ix.pts.length - 1].v }));
+  const selected = idxReady.find(ix => ix.secid === BD.resIdx);
+  if (BD.resIdx && !selected) BD.resIdx = null;
+  const candidates = selected ? [selected] : idxReady;
   const rows = BD.subs
     .map(s => {
-      if (s.pct == null) return null;
       let best = null;
-      for (const ix of idxVals) {
-        const diff = Math.abs(s.pct - ix.v);
-        if (!best || diff < best.diff) best = { name: ix.name, diff };
+      for (const ix of candidates) {
+        const sim = resonanceOf(s.trendPts, ix.pts);
+        if (sim && (!best || sim.score > best.sim.score)) best = { ix, sim };
       }
-      return { name: s.name, pct: s.pct, idx: best.name, diff: best.diff };
+      return best ? { sub: s, ix: best.ix, sim: best.sim } : null;
     })
     .filter(Boolean)
-    .sort((a, b) => a.diff - b.diff);
-  if (!rows.length) { list.innerHTML = '<div class="bd-empty">暂无涨跌幅数据</div>'; return; }
-  list.innerHTML = rows.slice(0, 8).map(r => `
-    <div class="bd-res-item">
-      <span class="bd-res-name" title="${esc(r.name)}">${esc(r.name)} <span class="${clsOf(r.pct)}">${pctTxt(r.pct)}</span></span>
-      <span class="bd-res-idx">↔ ${esc(r.idx)} <span class="bd-res-diff">差${r.diff.toFixed(2)}%</span></span>
-    </div>`).join('');
+    .sort((a, b) => b.sim.score - a.sim.score || b.sim.direction - a.sim.direction);
+  if (!rows.length) {
+    if (!SNAP) refreshResonanceTrends();
+    list.innerHTML = `<div class="bd-empty">${SNAP ? '快照暂无板块价格曲线' : '正在计算盘中曲线同频度…'}</div>`;
+    return;
+  }
+  list.innerHTML = rows.slice(0, 8).map(r => {
+    const open = BD.resOpen === r.sub.bk;
+    const pct = r.sub.pct == null ? '' : ` <span class="${clsOf(r.sub.pct)}">${pctTxt(r.sub.pct)}</span>`;
+    return `<div class="bd-res-wrap">
+      <div class="bd-res-item">
+        <span class="bd-res-main"><span class="bd-res-name" title="${esc(r.sub.name)}">${esc(r.sub.name)}${pct}</span>
+          <span class="bd-res-meta">↔ ${esc(r.ix.name)} · 同向 ${r.sim.direction}% · r ${r.sim.corr.toFixed(2)}</span></span>
+        <span class="bd-res-score" title="方向一致率占 70%，正相关性占 30%">${r.sim.score}%</span>
+        <button class="bd-res-open${open ? ' on' : ''}" data-resbk="${esc(r.sub.bk)}" data-residx="${esc(r.ix.secid)}" aria-expanded="${open}">${open ? '收起个股' : '打开个股'}</button>
+      </div>${open ? resonanceStockBlock(r.sub.bk, r.ix) : ''}
+    </div>`;
+  }).join('');
 }
 
 /* 与指数背离：排行榜 40 板块 vs 参照指数当日涨跌幅（零额外请求）
@@ -1129,12 +1249,27 @@ async function fetchZTPool() {
   BD.ztBusy = false;
 }
 
-/* 共振/背离 chips + 背离板块行 交互 */
-document.getElementById('bdResIdx').addEventListener('click', ev => {
-  const c = ev.target.closest('[data-idxsec]');
-  if (!c) return;
-  const sec = c.getAttribute('data-idxsec');
-  BD.resIdx = BD.resIdx === sec ? null : sec; // 再点一次回到板块视图
+/* 共振/背离 chips + 个股展开 + 背离板块行 交互 */
+document.getElementById('bdResSec').addEventListener('click', ev => {
+  const retry = ev.target.closest('[data-resretry]');
+  if (retry) { fetchResStocks(retry.getAttribute('data-resretry'), true); return; }
+  const openBtn = ev.target.closest('[data-resbk]');
+  if (openBtn) {
+    const bk = openBtn.getAttribute('data-resbk');
+    const opening = BD.resOpen !== bk;
+    BD.resOpen = opening ? bk : null;
+    if (opening) {
+      BD.resIdx = openBtn.getAttribute('data-residx');
+      fetchResStocks(bk);
+    }
+    renderIdxChips();
+    renderResonance();
+    return;
+  }
+  const chip = ev.target.closest('[data-idxsec]');
+  if (!chip) return;
+  const sec = chip.getAttribute('data-idxsec');
+  BD.resIdx = BD.resIdx === sec ? null : sec;
   renderIdxChips();
   renderResonance();
 });
@@ -2022,8 +2157,9 @@ const BD = {
   wl: null, wlPromise: null,     // 概念白名单 Map(BK→名称)
   snapshots: [], lastSnap: 0,    // 盘中截面（60s 一个，滚动 30 个）
   expanded: false, klineBusy: false,
-  resIdx: null,                  // 共振栏选中的指数 secid（null=板块视图）
-  mainStocks: null, mainStocksTs: 0, msBusy: false, // 主线代表股（个股共振筛选用）
+  resIdx: null, resOpen: null,   // 共振栏参照指数 / 展开的细分板块
+  resTrendBusy: false, resTrendTs: 0, // 细分板块价格曲线刷新状态
+  resStocks: {}, resStockBusy: new Set(), // bk -> 共振个股价格曲线缓存
   divIdx: '1.000001',            // 背离栏参照指数 secid（默认上证）
   divOpen: null,                 // 背离栏展开的板块 BK（下钻个股）
   divStocks: {}, divBusy: false, // bk -> {ts, list:[{code,name,pct,val,contrib,lbc}]}
@@ -2100,14 +2236,14 @@ async function loadBreakdown(bk) {
   const gen = ++BD.gen;
   BD.mainBk = bk;
   BD.subs = []; BD.snapshots = []; BD.lastSnap = 0; BD.expanded = false;
-  BD.mainStocks = null; BD.resIdx = null; // 换主线：代表股与共振个股视图重置
+  BD.resIdx = null; BD.resOpen = null; BD.resTrendTs = 0; // 换主线：共振参照与展开状态重置
   showBdSkeleton();
   // 离线快照：只用采集时访问过的主线（完整 subs），未访问的提示
   if (SNAP) {
     const v = (SNAP.bdVisited || {})[bk];
     if (v && v.length) {
       BD.subs = v.map(s => ({ ...s }));
-      renderDual(); buildBdGrid(); renderAccel(); drawMiniSparks(); updateBdNote();
+      renderDual(); buildBdGrid(); renderAccel(); drawMiniSparks(); renderResonance(); updateBdNote();
       return;
     }
     $id('bdAccIn').innerHTML = $id('bdAccOut').innerHTML = '<div class="bd-empty">—</div>';
@@ -2158,13 +2294,15 @@ async function loadBreakdown(bk) {
       $id('bdCount').textContent = '0/0';
       return;
     }
-    BD.subs = base.subs.map(s => ({ bk: s.bk, name: s.name, cnt: s.cnt, points: [],
+    BD.subs = base.subs.map(s => ({ bk: s.bk, name: s.name, cnt: s.cnt, points: [], trendPts: [],
       lastV: typeof s.f62 === 'number' ? s.f62 / 1e8 : null, d13: null, pct: s.pct != null ? s.pct : null,
       stOpen: false, stSort: 'speed', stocks: null, stTs: 0, stLoading: false, stError: false }));
     renderDual();
     buildBdGrid();
     refreshSubKlines(); // 细分分时（含加速值与迷你走势）
     refreshSubValues(); // 批量最新净额
+    renderResonance();
+    refreshResonanceTrends(); // 盘中价格曲线（同频评分）
     // 记录 visited（分时加载完成后再固化，供离线快照秒切）
     setTimeout(() => { if (BD.gen === gen) BD.visited[bk] = BD.subs.map(s => ({ ...s })); }, 3000);
   } catch (e) {
@@ -2393,6 +2531,7 @@ function showBdSkeleton() {
   $id('bdAccIn').innerHTML = '<div class="bd-acc-col-t">加速流入</div>' + rows;
   $id('bdAccOut').innerHTML = '<div class="bd-acc-col-t">加速流出 / 回落</div>' + rows;
   $id('bdGrid').innerHTML = '<div class="bd-mcard bd-skel" style="height:112px"></div><div class="bd-mcard bd-skel" style="height:112px"></div>';
+  $id('bdResList').innerHTML = '<div class="bd-empty">等待板块与指数曲线…</div>';
   $id('bdCount').textContent = '…';
 }
 function updateBdNote() {
@@ -3105,7 +3244,8 @@ function resetMarketDay(day) {
   state.rankMulti = {}; state.rankMultiErr = {}; state.rankPrev = {}; state.rankPrevBusy = new Set();
   state.expanded = null; state.stockCache = {}; state.selected = null; state.indexes = [];
   BD.gen++; BD.mainBk = null; BD.subs = []; BD.snapshots = []; BD.lastSnap = 0;
-  BD.visited = {}; BD.mainStocks = null; BD.divOpen = null; BD.divStocks = {};
+  BD.visited = {}; BD.resIdx = null; BD.resOpen = null; BD.resTrendTs = 0;
+  BD.resStocks = {}; BD.resStockBusy.clear(); BD.divOpen = null; BD.divStocks = {};
   BD.ztMap = null; BD.ztDate = '';
   ETF.scanGen++; ETF.scanning = false; ETF.map = new Map(); ETF.scanTs = 0; ETF.scanErr = false;
   ETF.complete = false; ETF.failedPages = []; ETF.dataDate = ''; ETF.lock = null;
@@ -3153,6 +3293,9 @@ function loop() {
       const c = BD.divStocks[BD.divOpen];
       if (!c || Date.now() - c.ts > 30000) fetchDivStocks(BD.divOpen);
     }
+    // 共振曲线每分钟续期；同频评分使用分钟价格变化，不跟随 10 秒报价抖动重拉。
+    if (!SNAP && BD.subs.length && ['auction', 'trading'].includes(state.phase) &&
+        Date.now() - BD.resTrendTs >= 60000) refreshResonanceTrends();
     // 展开的板块若有个股加载失败（或迷你图缺失），每 8 秒自动重试直到成功
     if (!SNAP && state.expanded) {
       const c = stockCacheFor(state.expanded.bk, state.expanded.tab);
