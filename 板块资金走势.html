@@ -42,6 +42,8 @@
   }
   .head { display: flex; align-items: center; gap: 8px; }
   h1 { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+  .ver { color: var(--link); border: 1px solid rgba(77,157,255,.35); background: rgba(77,157,255,.08);
+    border-radius: 999px; padding: 3px 7px; font-size: 9px; line-height: 1; font-weight: 700; flex: none; }
   .clock { margin-left: auto; font-size: 13px; color: var(--t2); font-variant-numeric: tabular-nums; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4f; flex: none;
     animation: pulse 1.2s ease-in-out infinite; }
@@ -321,14 +323,17 @@
   .idx-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 7px 0 0; }
   .idx-chip { font-size: 11px; line-height: 1; padding: 5px 10px; border-radius: 999px;
     border: 1px solid var(--sep); display: inline-flex; align-items: center; gap: 6px;
-    color: var(--t2); font-variant-numeric: tabular-nums; }
+    color: var(--t2); background: none; font-family: inherit; font-variant-numeric: tabular-nums; }
   .idx-chip i { width: 12px; height: 0; border-top: 2px dashed currentColor; flex: none; }
   .idx-chip b { font-weight: 600; }
   .idx-chip.clk { cursor: pointer; transition: all .15s ease; }
   .idx-chip.clk:active { transform: scale(.95); }
   .idx-chip.on { background: var(--panel); border-color: currentColor; }
+  .idx-chip.off { opacity: .38; filter: saturate(.45); }
+  .idx-chip.off i { border-top-style: dotted; }
   .lg-idx { display: inline-flex; align-items: center; gap: 4px; }
   .lg-idx i { width: 12px; border-top: 2px dashed currentColor; height: 0; }
+  .lg-idx.off { opacity: .3; }
   /* 细分·指数共振栏 */
   .bd-res-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 6px; }
   .bd-res-wrap { min-width: 0; border-bottom: 1px dashed var(--sep); }
@@ -369,6 +374,11 @@
   .bd-dv-l { width: 30px; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
   .bd-dv-l.hot { color: #f0b34e; font-weight: 700; }
   .bd-dv-v { width: 56px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
+  .bd-dv-main { flex: 1; min-width: 0; }
+  .bd-dv-main .bd-acc-name { display: block; }
+  .bd-dv-rel { display: block; margin-top: 2px; color: var(--t3); font-size: 9.5px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bd-dv-score { color: #f0b34e; font-size: 11px; font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
   @media (max-width: 560px) {
     .bd-res-list { grid-template-columns: 1fr; }
     #bdDivSec .bd-acc { grid-template-columns: 1fr; gap: 12px; }
@@ -378,6 +388,9 @@
       text-overflow: clip; color: var(--t1); font-weight: 600; }
     #bdDivSec .bd-dv-c, #bdDivSec .bd-dv-g, #bdDivSec .bd-dv-l, #bdDivSec .bd-dv-v {
       width: auto; min-width: 0; text-align: left; }
+    #bdDivSec .bd-dv-it { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 5px 8px; align-items: center; }
+    #bdDivSec .bd-dv-main { grid-column: 1 / -1; width: 100%; }
+    #bdDivSec .bd-dv-it > .bd-acc-val { width: auto; }
   }
 </style>
 </head>
@@ -387,6 +400,7 @@
     <div class="head">
       <span class="dot idle" id="dot"></span>
       <h1>A股板块资金走势</h1>
+      <span class="ver">V1.0</span>
       <span class="pill off" id="pill">加载中</span>
       <span class="clock" id="clock">--:--:--</span>
       <button class="snap-btn" id="themeBtn" aria-label="切换主题" title="主题：自动（白天浅色/夜间深色），点击切换">⏱</button>
@@ -407,8 +421,11 @@
       <button class="tab sm" id="wd-30" aria-pressed="false" onclick="setWin(30)">30分</button>
       <button class="tab sm" id="wd-15" aria-pressed="false" onclick="setWin(15)">15分</button>
       <button class="tab sm" id="wd-5" aria-pressed="false" onclick="setWin(5)">5分</button>
+      <button class="tab sm" id="wd-d3" aria-pressed="false" onclick="setWin('3d')">3日</button>
+      <button class="tab sm" id="wd-d5" aria-pressed="false" onclick="setWin('5d')">5日</button>
+      <button class="tab sm" id="wd-d10" aria-pressed="false" onclick="setWin('10d')">10日</button>
     </div>
-    <div class="idx-row" id="idxRow" style="display:none"></div>
+    <div class="idx-row" id="idxRow" style="display:none" aria-label="指数线显示开关"></div>
     <div class="sub" id="sub">概念板块 · 主力资金净额（亿元）· 5 净流入 / 5 净流出 · 10 秒刷新</div>
     <div class="chart-shell">
       <canvas id="cv" role="img" aria-label="板块主力资金分钟走势，红色为净流入，绿色为净流出"></canvas>
@@ -417,9 +434,9 @@
     <div class="foot">
       <span class="lg"><i style="background:#ff4d4f"></i>净流入</span>
       <span class="lg"><i style="background:#00b578"></i>净流出</span>
-      <span class="lg-idx" style="color:#f0b34e"><i></i>上证</span>
-      <span class="lg-idx" style="color:#7c9dff"><i></i>创业板</span>
-      <span class="lg-idx" style="color:#c58fff"><i></i>科创50</span>
+      <span class="lg-idx" data-lgidx="1.000001" style="color:#f0b34e"><i></i>上证</span>
+      <span class="lg-idx" data-lgidx="0.399006" style="color:#7c9dff"><i></i>创业板</span>
+      <span class="lg-idx" data-lgidx="1.000688" style="color:#c58fff"><i></i>科创50</span>
       <span id="upd">等待数据…</span>
       <button class="snap-btn" id="snapBtn" title="把当前全部数据打包成独立 HTML，断网也能打开查看">保存快照</button>
     </div>
@@ -436,7 +453,7 @@
       <div class="bd-res-list" id="bdResList"><div class="bd-empty">等待数据…</div></div>
     </div>
     <div class="bd-sec" id="bdDivSec">
-      <div class="bd-sec-head"><span class="bd-sec-title">与指数背离</span><span class="bd-sec-hint">指数跌·资金进 = 独立行情 · 点板块看个股贡献/连板 · 点指数切参照</span></div>
+      <div class="bd-sec-head"><span class="bd-sec-title">与指数背离</span><span class="bd-sec-hint">盘中反向率 + 负相关性 · 点指数切参照</span></div>
       <div class="idx-row" id="bdDivIdx" style="margin:6px 0 0"></div>
       <div class="bd-acc">
         <div class="bd-acc-col" id="bdDivIn"></div>
@@ -586,7 +603,7 @@ const flowYi = (d, p = 1) => { const v = flowYuan(d, p); return v == null ? null
 const RANK_FIELDS = 'f12,f14,f3,f62,f184,f127,f267,f109,f164,f160,f174,f124';
 const rankUrl = (fs, po, period = 1) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&np=1&fltt=2&invt=2&fid=${periodMeta(period).flow}&fs=${fs}&fields=${RANK_FIELDS}&ut=${UT}&po=${po}`;
 // 板块日线主力净额：只用于今日/上一交易日对比，按板块与数据日缓存
-const sectorDayUrl = bk => `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?lmt=4&klt=101&secid=90.${bk}&fields1=f1,f2,f3,f7&fields2=f51,f52&ut=${UT}`;
+const sectorDayUrl = (bk, lmt = 4) => `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?lmt=${lmt}&klt=101&secid=90.${bk}&fields1=f1,f2,f3,f7&fields2=f51,f52&ut=${UT}`;
 // 板块分时主力净额：每分钟一个点，值为累计值（元）
 const klineUrl = bk => `https://push2.eastmoney.com/api/qt/stock/fflow/kline/get?lmt=0&klt=1&secid=90.${bk}&fields1=f1,f2,f3,f7&fields2=f51,f52&ut=${UT}`;
 // 板块成分股（按主力净额排序）：f12 代码 / f13 市场(0=深 1=沪) / f14 名称 / f3 涨跌幅 / f62 主力净额
@@ -600,7 +617,7 @@ const slistUrl = (mkt, code) => `https://push2.eastmoney.com/api/qt/slist/get?np
 // 批量板块最新主力净额（1 个请求更新全部细分数值；f3 涨跌幅供指数共振）
 const ulistUrl = secids => `https://push2.eastmoney.com/api/qt/ulist.np/get?np=1&fltt=2&invt=2&secids=${secids}&fields=f12,f14,f62,f3,f267,f127,f164,f109,f174,f160&ut=${UT}`;
 // 概念板块成分个股（fid 排序字段：f22 涨速 / f62 主力净额 / f3 涨跌幅）
-const subStockUrl = (bk, fid) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=8&np=1&fltt=2&invt=2&fid=${fid}&fs=b:${bk}+f:!50&fields=f12,f13,f14,f3,f22,f62&ut=${UT}&po=1`;
+const subStockUrl = (bk, fid, pz = 8) => `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=${pz}&np=1&fltt=2&invt=2&fid=${fid}&fs=b:${bk}+f:!50&fields=f12,f13,f14,f3,f22,f62&ut=${UT}&po=1`;
 
 /* ================= 状态 ================= */
 const state = {
@@ -611,12 +628,15 @@ const state = {
   rankPrev: {}, rankPrevBusy: new Set(),       // BK -> {date,v,ts} 上一交易日净额（亿元）
   expanded: null,                              // 当前展开的板块 {bk, tab}
   stockCache: {},                              // "bk:in|out" -> {stocks:[], sparks:{code:pts}, loading, ts}
-  mode: 'cum', win: 0,                         // 曲线模式 cum=累计净额 / vel=5分流速；win=0 全天，否则近 N 分钟
+  mode: 'cum', win: 0,                         // win=0/分钟窗口；'3d'/'5d'/'10d'=交易日累计
   selected: null,                              // 主图选中板块 BK（驱动细分模块）
   customBks: null,                             // 自选概念 BK 列表（localStorage 持久化）
   light: false,                                // 当前是否浅色主题（auto 按时间 / 手动覆盖）
-  indexes: [],                                 // 恒定叠加的指数线 [{name,color,pts:[{m,v:%}]}]
+  indexes: [],                                 // 当日指数线 [{name,color,pts:[{m,v:%}]}]
+  idxHidden: {},                               // secid -> true；仅控制主图显隐，不影响共振/背离计算
+  multiBusy: false, multiTs: 0, multiErr: false, multiCached: false, multiReqGen: 0,
 };
+try { state.idxHidden = JSON.parse(localStorage.getItem('idxHidden') || '{}') || {}; } catch (e) {}
 // 主题模式：auto=跟随时间（7:00-19:00 浅色），light/dark 手动锁定；localStorage 持久化
 let themeMode = 'auto';
 try { themeMode = localStorage.getItem('themeMode') || 'auto'; } catch (e) {}
@@ -802,11 +822,16 @@ function updateSub() {
   const cust = state.source === 'custom';
   const n = cust ? `（自选 ${loadCustom().length} 个）` : (state.total ? `（${state.total} 个）` : '');
   const modeTxt = state.mode === 'vel' ? '5 分钟滚动净流入' : '主力净额累计';
-  const winTxt = state.win ? ` · 近 ${state.win} 分钟` : '';
+  const days = dayRangeCount();
+  const winTxt = days ? ` · 近 ${days} 个交易日` : state.win ? ` · 近 ${state.win} 分钟` : '';
+  const idxTxt = days ? ' · 指数为当日涨跌' : '';
   const oldDay = state.dataDate && state.dataDate !== todayStr();
   const dateTxt = state.dataDate ? ` · 数据日 ${fmtDate(state.dataDate)}${oldDay ? '（上一交易日参考）' : ''}` : '';
   const snapTxt = SNAP ? ` · 离线快照（采集于 ${hhmmss(new Date(SNAP.ts))}，不可刷新）` : ' · 10 秒刷新';
-  subEl.textContent = `${s.title}${n} · ${modeTxt}（亿元）${winTxt}${dateTxt}${snapTxt}`;
+  const multiTxt = days && state.multiBusy
+    ? (state.multiCached ? ' · 已显示本地缓存，后台更新…' : ' · 多日数据加载中…')
+    : days && state.multiErr ? ' · 部分多日数据暂缺' : '';
+  subEl.textContent = `${s.title}${n} · ${modeTxt}（亿元）${winTxt}${idxTxt}${dateTxt}${multiTxt}${snapTxt}`;
   const rs = document.getElementById('rankSub');
   const pm = periodMeta(state.rankPeriod);
   if (rs) rs.textContent = cust
@@ -817,26 +842,56 @@ function updateSub() {
 }
 
 /* ================= 曲线模式 / 时间范围 ================= */
+const dayRangeCount = (w = state.win) => typeof w === 'string' && /^\d+d$/.test(w) ? Number(w.slice(0, -1)) : 0;
 function setMode(m) {
-  if (state.mode === m) return;
+  if (m === 'vel' && dayRangeCount()) state.win = 0; // 5分流速仅适用于日内分钟线
+  if (state.mode === m) { syncViewTabs(); updateSub(); return; }
   state.mode = m;
   syncViewTabs(); updateSub();
 }
 function setWin(w) {
-  if (state.win === w) return;
+  if (dayRangeCount(w)) state.mode = 'cum';
+  if (state.win === w) { if (dayRangeCount(w) && !SNAP) fetchMultiDayData(); return; }
   state.win = w;
   syncViewTabs(); updateSub();
+  if (dayRangeCount(w) && !SNAP) fetchMultiDayData();
 }
 function syncViewTabs() {
   setPressed(document.getElementById('md-cum'), state.mode === 'cum');
   setPressed(document.getElementById('md-vel'), state.mode === 'vel');
-  [0, 60, 30, 15, 5].forEach(w =>
-    setPressed(document.getElementById('wd-' + w), state.win === w));
+  [0, 60, 30, 15, 5, '3d', '5d', '10d'].forEach(w => {
+    const id = dayRangeCount(w) ? 'd' + dayRangeCount(w) : w;
+    setPressed(document.getElementById('wd-' + id), state.win === w);
+  });
+  document.querySelectorAll('[data-lgidx]').forEach(el => { el.style.display = dayRangeCount() ? 'none' : ''; });
 }
-// 当前模式下用于绘制的序列（累计 / 5分流速）
+function sectorDailyRows(sec) {
+  const byDate = new Map((sec.dayFlows || []).map(x => [x.date, x.v]));
+  const pts = sec.points || [];
+  if (state.dataDate && pts.length) byDate.set(state.dataDate, pts[pts.length - 1].v); // 日接口盘中常不含今天
+  return [...byDate].map(([date, v]) => ({ date, v })).sort((a, b) => a.date.localeCompare(b.date));
+}
+function multiDateAxis(days = dayRangeCount()) {
+  if (!days) return [];
+  const dates = new Set();
+  for (const s of state.sectors) for (const d of sectorDailyRows(s)) dates.add(d.date);
+  return [...dates].sort().slice(-days);
+}
+function sectorDaySeries(sec, days = dayRangeCount()) {
+  const axis = multiDateAxis(days);
+  if (!axis.length || !sec.dayFlows || !sec.dayFlows.length) return [];
+  const byDate = new Map(sectorDailyRows(sec).map(x => [x.date, x.v]));
+  let sum = 0;
+  const out = [{ m: 0, v: 0, date: '' }];
+  axis.forEach((date, i) => { sum += byDate.get(date) || 0; out.push({ m: i + 1, v: sum, date }); });
+  return out;
+}
+// 当前模式下用于绘制的序列（日内累计/5分流速，或多日累计净额）
 function seriesOf(sec) {
+  if (dayRangeCount()) return sectorDaySeries(sec);
   return state.mode === 'vel' ? (sec.vel || []) : sec.points;
 }
+function indexSeriesOf(ix) { return dayRangeCount() ? [] : ix.pts; }
 // 5 分流速：最近 5 个分钟净流入之和（分钟净额 = 相邻累计值之差）
 function rollingVel(pts) {
   const out = [];
@@ -857,6 +912,8 @@ function mToClock(m) {
 }
 // 可见时间域：全天 [0,240]；窗口模式贴着最新数据 [last-N, last]
 function calcDomain() {
+  const days = dayRangeCount();
+  if (days) return { mLo: 0, mHi: days, days, dates: multiDateAxis(days) };
   let lastM = 0;
   for (const s of state.sectors) {
     const ser = seriesOf(s);
@@ -866,15 +923,121 @@ function calcDomain() {
   const mHi = Math.max(lastM, state.win); // 数据不足一个窗口时以窗口宽为域
   return { mLo: Math.max(0, mHi - state.win), mHi };
 }
+
+/* 3/5/10 日视图按需拉取板块日净额；指数只保留当日实时值，不叠加历史线。 */
+const DAY_FLOW_CACHE_KEY = 'sectorDayFlowCache_v1';
+const DAY_FLOW_CACHE_TTL = 12 * 60 * 60 * 1000;
+const DAY_FLOW_CACHE_MAX = 160;
+const DAY_FLOW_HISTORY_LIMIT = 11; // 前一交易日 + 再往前 10 个交易日；今日数值由实时曲线补入
+let dayFlowCacheMem = null;
+const dayFlowInflight = new Map();
+function dayFlowCache() {
+  if (dayFlowCacheMem) return dayFlowCacheMem;
+  try {
+    const raw = JSON.parse(localStorage.getItem(DAY_FLOW_CACHE_KEY) || '{}');
+    dayFlowCacheMem = raw && typeof raw === 'object' ? raw : {};
+    let trimmed = false;
+    for (const c of Object.values(dayFlowCacheMem)) {
+      if (c && Array.isArray(c.rows) && c.rows.length > DAY_FLOW_HISTORY_LIMIT) {
+        c.rows = c.rows.slice(-DAY_FLOW_HISTORY_LIMIT); trimmed = true;
+      }
+    }
+    if (trimmed) localStorage.setItem(DAY_FLOW_CACHE_KEY, JSON.stringify(dayFlowCacheMem));
+  } catch (e) { dayFlowCacheMem = {}; }
+  return dayFlowCacheMem;
+}
+function cachedDayFlow(bk) {
+  const c = dayFlowCache()[bk];
+  if (!c || !Array.isArray(c.rows)) return null;
+  const rows = c.rows
+    .map(x => ({ date: String(x && x.date || ''), v: Number(x && x.v) }))
+    .filter(x => /^\d{8}$/.test(x.date) && Number.isFinite(x.v))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-DAY_FLOW_HISTORY_LIMIT);
+  return rows.length ? { rows, ts: Number(c.ts) || 0, day: String(c.day || '') } : null;
+}
+function hydrateDayFlowCache(sec) {
+  if (!sec || (sec.dayFlows || []).length) return false;
+  const c = cachedDayFlow(sec.bk);
+  if (!c) return false;
+  sec.dayFlows = c.rows; sec.dayCacheTs = c.ts; sec.dayCacheDay = c.day;
+  return true;
+}
+function dayFlowCacheFresh(sec) {
+  return !!(sec && sec.dayCacheDay === todayStr() && Date.now() - (sec.dayCacheTs || 0) < DAY_FLOW_CACHE_TTL);
+}
+function saveDayFlowCache(sec, rows) {
+  if (!sec || !rows || !rows.length) return;
+  const store = dayFlowCache(), now = Date.now();
+  const merged = new Map();
+  const oldRows = cachedDayFlow(sec.bk);
+  for (const x of oldRows ? oldRows.rows : []) merged.set(x.date, x.v);
+  for (const x of rows) if (x && /^\d{8}$/.test(String(x.date)) && Number.isFinite(Number(x.v))) merged.set(String(x.date), Number(x.v));
+  const savedRows = [...merged].map(([date, v]) => ({ date, v })).sort((a, b) => a.date.localeCompare(b.date)).slice(-DAY_FLOW_HISTORY_LIMIT);
+  store[sec.bk] = { ts: now, day: todayStr(), rows: savedRows };
+  sec.dayCacheTs = now; sec.dayCacheDay = todayStr();
+  const old = Object.entries(store).sort((a, b) => (Number(b[1] && b[1].ts) || 0) - (Number(a[1] && a[1].ts) || 0));
+  for (const [bk] of old.slice(DAY_FLOW_CACHE_MAX)) delete store[bk];
+  try { localStorage.setItem(DAY_FLOW_CACHE_KEY, JSON.stringify(store)); } catch (e) {}
+}
+function requestSectorDayRows(bk) {
+  if (dayFlowInflight.has(bk)) return dayFlowInflight.get(bk);
+  const p = jsonpRetry(sectorDayUrl(bk, 12), 3).then(r => {
+    const rows = parseDayFlows(r && r.data && r.data.klines).slice(-DAY_FLOW_HISTORY_LIMIT);
+    if (rows.length) saveDayFlowCache({ bk }, rows);
+    return { rows, rc: r && r.rc, cache: cachedDayFlow(bk) };
+  }).finally(() => dayFlowInflight.delete(bk));
+  dayFlowInflight.set(bk, p);
+  return p;
+}
+async function runBatches(items, size, worker) {
+  for (let i = 0; i < items.length; i += size) await Promise.all(items.slice(i, i + size).map(worker));
+}
+async function fetchMultiDayData(force, preloadDays = 0) {
+  const days = preloadDays || dayRangeCount();
+  if (SNAP || !days || state.multiBusy || !state.sectors.length) return;
+  let cacheHits = 0;
+  for (const s of state.sectors) if (hydrateDayFlowCache(s) || s.dayCacheTs) cacheHits++;
+  state.multiCached = cacheHits > 0;
+  const sectorReady = state.sectors.every(s => (s.dayFlows || []).length >= days);
+  const cacheFresh = state.sectors.every(dayFlowCacheFresh);
+  if (!force && sectorReady && (cacheFresh || Date.now() - state.multiTs < 300000)) {
+    state.multiTs = Date.now(); state.multiErr = false; updateSub(); return;
+  }
+  const req = ++state.multiReqGen;
+  const source = state.source;
+  state.multiBusy = true; state.multiErr = false; updateSub();
+  try {
+    const sectors = state.sectors.filter(s => force || (s.dayFlows || []).length < days || !dayFlowCacheFresh(s));
+    await runBatches(sectors, 10, async s => { // 当前主图最多 10 条，先整体入队，抢在排行背景补数之前
+      try {
+        const { rows, rc, cache } = await requestSectorDayRows(s.bk);
+        if (state.multiReqGen !== req || state.source !== source) return;
+        if (rows.length) {
+          s.dayFlows = rows;
+          if (cache) { s.dayCacheTs = cache.ts; s.dayCacheDay = cache.day; }
+        }
+        else console.warn('[multi-day] sector history empty', s.bk, rc);
+      } catch (e) { console.warn('[multi-day] sector history failed', s.bk, e && e.message); }
+    });
+    if (state.multiReqGen !== req || state.source !== source) return;
+    const missingSector = state.sectors.some(s => (s.dayFlows || []).length < days);
+    state.multiTs = Date.now(); state.multiErr = missingSector;
+  } finally {
+    if (state.multiReqGen === req) { state.multiBusy = false; updateSub(); }
+  }
+}
 function switchSource(id) {
   if (SNAP) { updEl.textContent = '离线快照不可切换数据源'; return; }
   if (state.source === id || !SOURCES[id]) return;
   state.source = id;
   state.sectors = []; state.locked = false; state.everFetched = false; state.total = 0; state.dataDate = '';
   state.rankIn = []; state.rankOut = []; state.rankMulti = {}; state.rankMultiErr = {}; state.expanded = null; state.stockCache = {};
+  state.multiReqGen++; state.multiBusy = false; state.multiTs = 0; state.multiErr = false; state.multiCached = false;
   state.selected = null;                    // 切源重置选中 → 重新锁定后自动选新榜净流入 TOP1
   BD.mainBk = null; BD.subs = []; BD.snapshots = []; BD.lastSnap = 0; BD.expanded = false;
   BD.resIdx = null; BD.resOpen = null; BD.resTrendTs = 0; BD.resStocks = {}; BD.resStockBusy.clear();
+  BD.divOpen = null; BD.divStocks = {}; BD.divTrends = {}; BD.divTrendBusy.clear();
   showBdSkeleton();
   document.getElementById('rankList').innerHTML = '<div class="loading">加载中…</div>';
   updEl.textContent = '切换数据源…';
@@ -888,14 +1051,17 @@ updateTabs();
 const arr = x => (Array.isArray(x) ? x : []);
 
 function mkSector(d, dir, i) {
-  return {
+  const sec = {
     bk: d.f12, name: d.f14 || d.f12, dir,
     color: dir > 0 ? REDS[i % 5] : GREENS[i % 5],
     points: [],        // [{m:交易分钟, v:亿}] 累计净额
     vel: [],           // [{m, v:亿}] 5 分钟滚动流速（由 points 派生）
+    dayFlows: [],      // [{date:YYYYMMDD,v:亿}] 日主力净额（多日视图）
     anim: null,        // {from,to,start,dur} 生长动画
     flashStart: 0, flashDir: 0, flashPending: null,
   };
+  hydrateDayFlowCache(sec);
+  return sec;
 }
 
 /* ================= 指数叠加：拉取 / chips / 主图双轴绘制 ================= */
@@ -930,8 +1096,8 @@ function pearson(xs, ys) {
   return dx2 > 0 && dy2 > 0 ? num / Math.sqrt(dx2 * dy2) : 0;
 }
 
-/* 同频 = 5 分钟涨跌方向一致为主（70%）+ 变化节奏相关性为辅（30%）。 */
-function resonanceOf(aPts, bPts) {
+/* 对齐两条曲线的 5 分钟变化，提取同向率、反向率与相关性。 */
+function trendRelation(aPts, bPts) {
   if (!aPts || !bPts || aPts.length < 3 || bPts.length < 3) return null;
   const a = new Map(aPts.map(p => [p.m, p.v]));
   const b = new Map(bPts.map(p => [p.m, p.v]));
@@ -939,7 +1105,7 @@ function resonanceOf(aPts, bPts) {
   if (common.length < 7) return null;
   const step = common[common.length - 1] - common[0] >= 30 ? 5 : 1;
   const xs = [], ys = [];
-  let same = 0, useful = 0;
+  let same = 0, opposite = 0, useful = 0;
   const eps = .008;
   for (const m of common) {
     if (!a.has(m - step) || !b.has(m - step)) continue;
@@ -948,14 +1114,41 @@ function resonanceOf(aPts, bPts) {
     xs.push(dx); ys.push(dy);
     if (Math.abs(dx) < eps && Math.abs(dy) < eps) continue;
     useful++;
-    if (Math.sign(Math.abs(dx) < eps ? 0 : dx) === Math.sign(Math.abs(dy) < eps ? 0 : dy)) same++;
+    const sx = Math.sign(Math.abs(dx) < eps ? 0 : dx), sy = Math.sign(Math.abs(dy) < eps ? 0 : dy);
+    if (sx === sy) same++;
+    else if (sx && sy && sx === -sy) opposite++;
   }
   if (xs.length < 6 || useful < 4) return null;
-  const direction = same / useful;
   const corr = Math.max(-1, Math.min(1, pearson(xs, ys)));
-  const score = Math.round(Math.max(0, Math.min(100, direction * 70 + Math.max(0, corr) * 30)));
-  return { score, direction: Math.round(direction * 100), corr, samples: xs.length, step };
+  return { same: same / useful, opposite: opposite / useful, corr, samples: xs.length, step };
 }
+
+/* 同频 = 方向一致率为主（70%）+ 正相关性为辅（30%）。 */
+function resonanceOf(aPts, bPts) {
+  const rel = trendRelation(aPts, bPts);
+  if (!rel) return null;
+  const direction = rel.same;
+  const corr = rel.corr;
+  const score = Math.round(Math.max(0, Math.min(100, direction * 70 + Math.max(0, corr) * 30)));
+  return { score, direction: Math.round(direction * 100), corr, samples: rel.samples, step: rel.step };
+}
+
+/* 背离 = 方向相反率为主（70%）+ 负相关性为辅（30%）。 */
+function divergenceOf(aPts, bPts) {
+  const rel = trendRelation(aPts, bPts);
+  if (!rel) return null;
+  const score = Math.round(Math.max(0, Math.min(100, rel.opposite * 70 + Math.max(0, -rel.corr) * 30)));
+  return { score, opposite: Math.round(rel.opposite * 100), corr: rel.corr, samples: rel.samples, step: rel.step };
+}
+
+/* 指数对应股票池：上证参照按用户口径代表沪深主板，创业/科创严格限定代码段。 */
+function indexStockPool(secid) {
+  if (secid === '0.399006') return { label: '创业板 300/301', test: code => /^(300|301)/.test(code) };
+  if (secid === '1.000688') return { label: '科创板 688', test: code => /^688/.test(code) };
+  return { label: '沪深主板 60/00', test: code => /^(60|00)/.test(code) };
+}
+function stockMatchesIndex(code, secid) { return indexStockPool(secid).test(String(code || '')); }
+function relationStockKey(bk, secid) { return `${bk}|${secid || '1.000001'}`; }
 
 async function fetchIndexes(myGen) {
   if (SNAP || idxBusy) return;
@@ -976,7 +1169,8 @@ async function fetchIndexes(myGen) {
       const old = new Map(state.indexes.map(x => [x.name, x]));
       state.indexes = INDEXES.map(ix => {
         const n = ok.find(x => x.name === ix.name);
-        return n || old.get(ix.name) || null;
+        const prev = old.get(ix.name);
+        return n || prev || null;
       }).filter(Boolean);
       idxEver = true;
       renderIdxChips();
@@ -986,17 +1180,32 @@ async function fetchIndexes(myGen) {
 }
 /* 指数 chips：标题区静态一行；共振/背离栏可点击变体（各自容器渲染） */
 function renderIdxChips() {
-  const chip = (ix, clk, attr, onSec) => {
-    const v = ix.pts.length ? ix.pts[ix.pts.length - 1].v : null;
+  const chip = (ix, clk, attr, onSec, off) => {
+    const ser = ix.pts;
+    const v = ser.length ? ser[ser.length - 1].v : null;
     const on = clk && onSec === ix.secid ? ' on' : '';
-    return `<span class="idx-chip${clk ? ' clk' + on : ''}"${clk ? ` ${attr}="${ix.secid}"` : ''} style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></span>`;
+    const tag = clk ? 'button' : 'span';
+    const offCls = off ? ' off' : '';
+    const pressed = attr === 'data-mainidx' ? !off : !!on;
+    const title = attr === 'data-mainidx' ? ` title="单击${off ? '显示' : '隐藏'}${esc(ix.name)}曲线"` : '';
+    return `<${tag} class="idx-chip${clk ? ' clk' + on : ''}${offCls}"${clk ? ` ${attr}="${ix.secid}" aria-pressed="${pressed}"` : ''}${title} style="color:${ix.color}"><i></i>${ix.name} <b class="${clsOf(v)}">${v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'}</b></${tag}>`;
   };
   const row = document.getElementById('idxRow');
-  if (row) { row.innerHTML = state.indexes.map(ix => chip(ix, false)).join(''); row.style.display = state.indexes.length ? '' : 'none'; }
+  if (row) { row.innerHTML = state.indexes.map(ix => chip(ix, true, 'data-mainidx', null, !!state.idxHidden[ix.secid])).join(''); row.style.display = state.indexes.length ? '' : 'none'; }
+  document.querySelectorAll('[data-lgidx]').forEach(el => el.classList.toggle('off', !!state.idxHidden[el.getAttribute('data-lgidx')]));
   const res = document.getElementById('bdResIdx');
   if (res) res.innerHTML = state.indexes.map(ix => chip(ix, true, 'data-idxsec', BD.resIdx)).join('');
   renderDivergence();
 }
+
+document.getElementById('idxRow').addEventListener('click', ev => {
+  const btn = ev.target.closest('[data-mainidx]');
+  if (!btn) return;
+  const secid = btn.getAttribute('data-mainidx');
+  if (state.idxHidden[secid]) delete state.idxHidden[secid]; else state.idxHidden[secid] = true;
+  try { localStorage.setItem('idxHidden', JSON.stringify(state.idxHidden)); } catch (e) {}
+  renderIdxChips();
+});
 
 /* 细分板块盘中价格曲线：60s 缓存，专供共振评分。 */
 async function refreshResonanceTrends(force) {
@@ -1025,18 +1234,21 @@ async function refreshResonanceTrends(force) {
 }
 
 /* 打开某个共振板块后，拉代表股及各自的盘中价格曲线。 */
-async function fetchResStocks(bk, force) {
-  if (SNAP || BD.resStockBusy.has(bk)) return;
-  const old = BD.resStocks[bk];
+async function fetchResStocks(bk, secid, force) {
+  secid = secid || BD.resIdx || '1.000001';
+  const key = relationStockKey(bk, secid);
+  if (SNAP || BD.resStockBusy.has(key)) return;
+  const old = BD.resStocks[key];
   if (!force && old && !old.err && Date.now() - old.ts < 60000) return;
-  BD.resStockBusy.add(bk);
-  BD.resStocks[bk] = { ts: old ? old.ts : 0, list: old ? old.list : [], loading: true, err: false };
+  BD.resStockBusy.add(key);
+  BD.resStocks[key] = { ts: old ? old.ts : 0, list: old ? old.list : [], loading: true, err: false };
   renderResonance();
   const gen = BD.gen;
   try {
-    const r = await jsonpRetry(subStockUrl(bk, 'f62'));
+    const r = await jsonpRetry(subStockUrl(bk, 'f62', 100));
     if (BD.gen !== gen) return;
-    const stocks = arr(r && r.data && r.data.diff).filter(d => d && d.f12).map(d => ({
+    const stocks = arr(r && r.data && r.data.diff)
+      .filter(d => d && d.f12 && stockMatchesIndex(d.f12, secid)).map(d => ({
       code: String(d.f12),
       mkt: d.f13 != null ? d.f13 : (String(d.f12).charAt(0) === '6' ? 1 : 0),
       name: d.f14 || d.f12,
@@ -1056,21 +1268,22 @@ async function fetchResStocks(bk, force) {
       if (BD.gen !== gen) return;
       await sleep(120);
     }
-    BD.resStocks[bk] = { ts: Date.now(), list: stocks, loading: false, err: false };
+    BD.resStocks[key] = { ts: Date.now(), list: stocks, loading: false, err: false };
   } catch (e) {
-    BD.resStocks[bk] = { ts: Date.now() - 50000, list: old ? old.list : [], loading: false, err: true };
+    BD.resStocks[key] = { ts: Date.now() - 50000, list: old ? old.list : [], loading: false, err: true };
   } finally {
-    BD.resStockBusy.delete(bk);
+    BD.resStockBusy.delete(key);
     if (BD.gen === gen && BD.resOpen === bk) renderResonance();
   }
 }
 
 function resonanceStockBlock(bk, ix) {
   if (SNAP) return '<div class="bd-res-stock-box"><div class="bd-empty">离线快照未采集共振个股</div></div>';
-  const c = BD.resStocks[bk];
-  if (!c) { fetchResStocks(bk); return '<div class="bd-res-stock-box"><div class="bd-empty">加载个股曲线…</div></div>'; }
+  const key = relationStockKey(bk, ix.secid), pool = indexStockPool(ix.secid);
+  const c = BD.resStocks[key];
+  if (!c) { fetchResStocks(bk, ix.secid); return `<div class="bd-res-stock-box"><div class="bd-empty">加载${pool.label}个股曲线…</div></div>`; }
   if (c.loading && !c.list.length) return '<div class="bd-res-stock-box"><div class="bd-empty">加载个股曲线…</div></div>';
-  if (c.err && !c.list.length) return `<div class="bd-res-stock-box"><div class="bd-empty" style="color:#ff7a7a;cursor:pointer" data-resretry="${esc(bk)}">加载失败 · 点击重试</div></div>`;
+  if (c.err && !c.list.length) return `<div class="bd-res-stock-box"><div class="bd-empty" style="color:#ff7a7a;cursor:pointer" data-resretry="${esc(bk)}" data-resretryidx="${esc(ix.secid)}">加载失败 · 点击重试</div></div>`;
   const rows = c.list.map(s => ({ ...s, sim: resonanceOf(s.trendPts, ix.pts) }))
     .sort((a, b) => (b.sim ? b.sim.score : -1) - (a.sim ? a.sim.score : -1));
   const body = rows.map(s => `<div class="bd-res-stock-row">
@@ -1078,7 +1291,7 @@ function resonanceStockBlock(bk, ix) {
     <span class="bd-res-stock-same">${s.sim ? '同向' + s.sim.direction + '%' : '曲线不足'}</span>
     <span class="bd-res-stock-score">${s.sim ? s.sim.score + '%' : '--'}</span>
   </div>`).join('');
-  return `<div class="bd-res-stock-box"><div class="bd-res-stock-hint"><span>与${esc(ix.name)}同频的代表股</span><span>同向率 · 同频分</span></div>${body || '<div class="bd-empty">暂无个股数据</div>'}</div>`;
+  return `<div class="bd-res-stock-box"><div class="bd-res-stock-hint"><span>与${esc(ix.name)}同频 · ${pool.label}</span><span>同向率 · 同频分</span></div>${body || `<div class="bd-empty">该板块暂无${pool.label}个股</div>`}</div>`;
 }
 
 /* 细分·指数共振：按盘中曲线同向率与相关性排序；指数 chip 只限定参照。 */
@@ -1123,9 +1336,30 @@ function renderResonance() {
   }).join('');
 }
 
-/* 与指数背离：排行榜 40 板块 vs 参照指数当日涨跌幅（零额外请求）
-   逆势流入 = 指数跌且板块资金净流入（独立行情）；逆势流出 = 指数涨且板块净流出（弱势）
-   板块行可点击 → 下钻个股（贡献度/连板高度/主力净额） */
+/* 背离候选板块盘中价格曲线：只拉当前资金候选，60s 缓存。 */
+async function ensureDivTrends(bks) {
+  if (SNAP) return;
+  const needed = [...new Set(bks)].filter(bk => {
+    const c = BD.divTrends[bk];
+    return !BD.divTrendBusy.has(bk) && (!c || Date.now() - c.ts >= 55000);
+  });
+  if (!needed.length) return;
+  await Promise.all(needed.map(async (bk, i) => {
+    BD.divTrendBusy.add(bk);
+    if (i) await sleep((i % 4) * 90);
+    try {
+      const r = await jsonpRetry(idxTrendUrl('90.' + bk));
+      const pts = parsePriceTrend(r && r.data);
+      BD.divTrends[bk] = { ts: Date.now(), pts, err: !pts.length };
+    } catch (e) {
+      const old = BD.divTrends[bk];
+      BD.divTrends[bk] = { ts: Date.now() - 45000, pts: old ? old.pts : [], err: true };
+    } finally { BD.divTrendBusy.delete(bk); }
+  }));
+  renderDivergence();
+}
+
+/* 与指数背离：先用指数方向 × 资金方向筛候选，再用分钟价格反向率/负相关性给出背离度。 */
 function renderDivergence() {
   const inEl = document.getElementById('bdDivIn'), outEl = document.getElementById('bdDivOut');
   const idxRow = document.getElementById('bdDivIdx');
@@ -1145,13 +1379,27 @@ function renderDivergence() {
   const byBk = new Map();
   for (const d of [...state.rankIn, ...state.rankOut]) if (d && d.f12) byBk.set(d.f12, d);
   const all = [...byBk.values()].filter(d => typeof d.f62 === 'number' && typeof d.f3 === 'number');
-  const item = (d, sign) => `<div class="bd-acc-item bd-dv-it" data-divbk="${esc(d.f12)}" title="点击展开个股：贡献度 / 连板高度 / 流入资金"><span class="bd-acc-name">${esc(d.f14 || d.f12)} <span class="${clsOf(d.f3)}" style="font-size:10px">${pctTxt(d.f3)}</span></span><span class="bd-acc-val ${sign > 0 ? 'up' : 'down'}">${fmtVal(d.f62 / 1e8)}</span><span class="bd-dv-chev">${BD.divOpen === d.f12 ? '▾' : '▸'}</span></div>`;
-  const withBlocks = (list, sign) => list.map(d =>
-    item(d, sign) + (BD.divOpen === d.f12 ? divStockBlock(d.f12, sign) : '')).join('');
+  const withRel = d => ({ d, rel: divergenceOf((BD.divTrends[d.f12] || {}).pts, ix.pts) });
+  const item = (row, sign) => {
+    const d = row.d, rel = row.rel, open = BD.divOpen === d.f12;
+    const relTxt = rel ? `反向 ${rel.opposite}% · r ${rel.corr.toFixed(2)}` : (SNAP ? '快照无曲线' : '背离度计算中…');
+    return `<div class="bd-acc-item bd-dv-it">
+      <span class="bd-dv-main"><span class="bd-acc-name">${esc(d.f14 || d.f12)} <span class="${clsOf(d.f3)}" style="font-size:10px">${pctTxt(d.f3)}</span></span><span class="bd-dv-rel">${relTxt}</span></span>
+      <span class="bd-dv-score" title="反向率占 70%，负相关性占 30%">${rel ? rel.score + '%' : '--'}</span>
+      <span class="bd-acc-val ${sign > 0 ? 'up' : 'down'}">${fmtVal(d.f62 / 1e8)}</span>
+      <button class="bd-res-open${open ? ' on' : ''}" data-divbk="${esc(d.f12)}" aria-expanded="${open}">${open ? '收起个股' : '打开个股'}</button>
+    </div>`;
+  };
+  const withBlocks = (list, sign) => list.map(row =>
+    item(row, sign) + (BD.divOpen === row.d.f12 ? divStockBlock(row.d.f12, sign, ix) : '')).join('');
   const mk = (title, body, emptyMsg) =>
     `<div class="bd-acc-col-t">${title}</div>` + (body || `<div class="bd-empty">${emptyMsg}</div>`);
-  const inList = iv < 0 ? all.filter(d => d.f62 > 0).sort((a, b) => b.f62 - a.f62).slice(0, 5) : [];
-  const outList = iv > 0 ? all.filter(d => d.f62 < 0).sort((a, b) => a.f62 - b.f62).slice(0, 5) : [];
+  const inPool = iv < 0 ? all.filter(d => d.f62 > 0).sort((a, b) => b.f62 - a.f62).slice(0, 8) : [];
+  const outPool = iv > 0 ? all.filter(d => d.f62 < 0).sort((a, b) => a.f62 - b.f62).slice(0, 8) : [];
+  ensureDivTrends([...inPool, ...outPool].map(d => d.f12));
+  const byScore = (a, b) => (b.rel ? b.rel.score : -1) - (a.rel ? a.rel.score : -1);
+  const inList = inPool.map(withRel).sort(byScore).slice(0, 5);
+  const outList = outPool.map(withRel).sort(byScore).slice(0, 5);
   inEl.innerHTML = mk(`逆势流入 · ${iv < 0 ? esc(ix.name) + ' ' + iv.toFixed(2) + '%' : '指数未跌'}`, withBlocks(inList, 1),
     iv < 0 ? '无' : '指数上涨中，无逆势流入');
   outEl.innerHTML = mk(`逆势流出 · ${iv > 0 ? esc(ix.name) + ' +' + iv.toFixed(2) + '%' : '指数未涨'}`, withBlocks(outList, -1),
@@ -1159,15 +1407,17 @@ function renderDivergence() {
 }
 
 /* 背离板块·个股块：贡献度 = 流通市值×涨跌幅/Σ流通市值（拉动板块的点数）+ 连板高度 + 主力净额 */
-function divStockBlock(bk, dir) {
-  const c = BD.divStocks[bk];
+function divStockBlock(bk, dir, ix) {
+  const idxSec = ix ? ix.secid : BD.divIdx;
+  const pool = indexStockPool(idxSec), key = relationStockKey(bk, idxSec);
+  const c = BD.divStocks[key];
   const sec = [...state.rankIn, ...state.rankOut].find(d => d && d.f12 === bk);
   const name = sec ? (sec.f14 || bk) : bk;
   let body;
   if (SNAP) body = '<div class="bd-empty">离线快照未采集背离个股</div>';
-  else if (!c) { body = '<div class="bd-empty">加载个股…</div>'; fetchDivStocks(bk); }
+  else if (!c) { body = `<div class="bd-empty">加载${pool.label}个股…</div>`; fetchDivStocks(bk, idxSec); }
   else if (c.err && !c.list.length) body = '<div class="bd-empty" style="color:#ff7a7a;cursor:pointer">加载失败 · 点击重试</div>';
-  else if (!c.list.length) body = '<div class="bd-empty">暂无数据</div>';
+  else if (!c.list.length) body = `<div class="bd-empty">该板块暂无${pool.label}个股</div>`;
   else {
     const rows = [...c.list]
       .sort((a, b) => dir > 0 ? b.contrib - a.contrib : a.contrib - b.contrib) // 流入看拉动、流出看拖累
@@ -1182,20 +1432,23 @@ function divStockBlock(bk, dir) {
       </div>`).join('');
   }
   return `<div class="bd-dv-box" data-dvbox="1">
-    <div class="bd-dv-hint"><span>「${esc(name)}」${dir > 0 ? '拉动' : '拖累'}个股</span><span>涨跌 · 贡献 · 连板 · 净额(亿)</span></div>
+    <div class="bd-dv-hint"><span>「${esc(name)}」${dir > 0 ? '拉动' : '拖累'} · ${pool.label}</span><span>涨跌 · 贡献 · 连板 · 净额(亿)</span></div>
     ${body}</div>`;
 }
-async function fetchDivStocks(bk) {
+async function fetchDivStocks(bk, secid) {
+  secid = secid || BD.divIdx || '1.000001';
+  const key = relationStockKey(bk, secid);
   if (SNAP || BD.divBusy) return;
-  const cache = BD.divStocks[bk];
+  const cache = BD.divStocks[key];
   if (cache && Date.now() - cache.ts < 25000) return; // 25s 缓存
   BD.divBusy = true;
   try {
     const r = await jsonpRetry(divStockUrl(bk));
-    const diff = arr(r && r.data && r.data.diff)
+    const allStocks = arr(r && r.data && r.data.diff)
       .filter(d => d && d.f12 && typeof d.f3 === 'number' && typeof d.f21 === 'number');
-    const capSum = diff.reduce((a, b) => a + (b.f21 || 0), 0) || 1;
-    BD.divStocks[bk] = {
+    const capSum = allStocks.reduce((a, b) => a + (b.f21 || 0), 0) || 1;
+    const diff = allStocks.filter(d => stockMatchesIndex(d.f12, secid));
+    BD.divStocks[key] = {
       ts: Date.now(), err: false,
       list: diff.map(d => ({
         code: String(d.f12), name: d.f14 || d.f12,
@@ -1206,7 +1459,7 @@ async function fetchDivStocks(bk) {
       })),
     };
   } catch (e) {
-    if (!BD.divStocks[bk]) BD.divStocks[bk] = { ts: Date.now() - 20000, list: [], err: true };
+    if (!BD.divStocks[key]) BD.divStocks[key] = { ts: Date.now() - 20000, list: [], err: true };
   }
   BD.divBusy = false;
   if (BD.divOpen === bk) renderDivergence();
@@ -1252,7 +1505,7 @@ async function fetchZTPool() {
 /* 共振/背离 chips + 个股展开 + 背离板块行 交互 */
 document.getElementById('bdResSec').addEventListener('click', ev => {
   const retry = ev.target.closest('[data-resretry]');
-  if (retry) { fetchResStocks(retry.getAttribute('data-resretry'), true); return; }
+  if (retry) { fetchResStocks(retry.getAttribute('data-resretry'), retry.getAttribute('data-resretryidx'), true); return; }
   const openBtn = ev.target.closest('[data-resbk]');
   if (openBtn) {
     const bk = openBtn.getAttribute('data-resbk');
@@ -1260,7 +1513,7 @@ document.getElementById('bdResSec').addEventListener('click', ev => {
     BD.resOpen = opening ? bk : null;
     if (opening) {
       BD.resIdx = openBtn.getAttribute('data-residx');
-      fetchResStocks(bk);
+      fetchResStocks(bk, BD.resIdx);
     }
     renderIdxChips();
     renderResonance();
@@ -1276,8 +1529,8 @@ document.getElementById('bdResSec').addEventListener('click', ev => {
 document.getElementById('bdDivSec').addEventListener('click', ev => {
   const box = ev.target.closest('[data-dvbox]');
   if (box) { // 个股块内点击：仅处理"加载失败重试"
-    const c = BD.divStocks[BD.divOpen];
-    if (c && c.err && !c.list.length) { c.ts = 0; fetchDivStocks(BD.divOpen); }
+    const c = BD.divStocks[relationStockKey(BD.divOpen, BD.divIdx)];
+    if (c && c.err && !c.list.length) { c.ts = 0; fetchDivStocks(BD.divOpen, BD.divIdx); }
     return;
   }
   const chip = ev.target.closest('[data-divsec]');
@@ -1286,7 +1539,7 @@ document.getElementById('bdDivSec').addEventListener('click', ev => {
   if (!it) return;
   const bk = it.getAttribute('data-divbk');
   BD.divOpen = BD.divOpen === bk ? null : bk; // 再点一次收起
-  if (BD.divOpen) fetchDivStocks(bk);
+  if (BD.divOpen) fetchDivStocks(bk, BD.divIdx);
   renderDivergence();
 });
 
@@ -1358,6 +1611,7 @@ async function fetchCycle(force) {
       const dates = await Promise.all(state.sectors.map(s => fetchKline(s, myGen)));
       if (fetchGen !== myGen) return;
       updateCoreDataDate(dates);
+      fetchMultiDayData(false, 10); // 低优先级预热；用户点 3/5/10 日时通常可直接命中本地缓存
       state.locked = state.dataDate === todayStr() && ['trading', 'lunch', 'closed'].includes(state.phase);
       renderRank();
       try { renderDual(); if (cycleCount % 2 === 0) refreshSubKlines(); } catch (e) {}
@@ -1395,6 +1649,7 @@ async function fetchCycle(force) {
     const dates = await Promise.all(state.sectors.map(s => fetchKline(s, myGen)));
     if (fetchGen !== myGen) return;
     updateCoreDataDate(dates);
+    fetchMultiDayData(false, 10); // 先于排行昨值请求入队，并与其共享同一份日线请求
     if (!state.locked && state.dataDate === todayStr() && ['trading', 'lunch', 'closed'].includes(state.phase)) state.locked = true;
     renderRank();
     try {
@@ -1464,7 +1719,7 @@ function drawnCount(sec, now) {
 /* ================= 绘制 ================= */
 function geo() {
   const W = CV.clientWidth, H = CV.clientHeight;
-  const hasIdx = state.indexes.length > 0;
+  const hasIdx = state.indexes.some(ix => !state.idxHidden[ix.secid] && indexSeriesOf(ix).length);
   const plotL = 40, plotR = W - (hasIdx ? 46 : 10), plotT = 12, plotB = H - 22;
   return { W, H, plotL, plotR, plotT, plotB, plotW: plotR - plotL, plotH: plotB - plotT,
            zeroY: plotT + (plotB - plotT) / 2 };
@@ -1512,6 +1767,7 @@ function fillRoundRect(x, y, w, h, r, color) {
 function drawChart() {
   const g = geo(), now = performance.now();
   const dom = calcDomain();
+  const dayMode = !!dom.days;
   const span = dom.mHi - dom.mLo || 1;
   const xOf = m => g.plotL + ((m - dom.mLo) / span) * g.plotW;
 
@@ -1543,10 +1799,14 @@ function drawChart() {
   }
   hLine(0, true); // 0 轴加粗
 
-  /* --- X 轴：自适应时间网格（全天每30分 / 60分窗每10分 / 30·15分窗每5分 / 5分窗每1分） --- */
-  const step = !state.win ? 30 : state.win >= 60 ? 10 : state.win >= 15 ? 5 : 1;
+  /* --- X 轴：日内显示交易时刻；多日显示交易日期 --- */
   const ticks = [];
-  for (let m = Math.ceil((dom.mLo - 1e-9) / step) * step; m <= dom.mHi + 1e-9; m += step) ticks.push(m);
+  if (dayMode) {
+    for (let m = 0; m <= dom.days; m++) ticks.push(m);
+  } else {
+    const step = !state.win ? 30 : state.win >= 60 ? 10 : state.win >= 15 ? 5 : 1;
+    for (let m = Math.ceil((dom.mLo - 1e-9) / step) * step; m <= dom.mHi + 1e-9; m += step) ticks.push(m);
+  }
   ctx.strokeStyle = UI.gridV; ctx.lineWidth = 1;
   for (const m of ticks) { // 垂直网格线（边缘两条由坐标框代替，不画）
     if (m === dom.mLo || m === dom.mHi) continue;
@@ -1554,7 +1814,7 @@ function drawChart() {
     ctx.beginPath(); ctx.moveTo(x, g.plotT); ctx.lineTo(x, g.plotB); ctx.stroke();
   }
   /* --- 午休分隔虚线（仅当 11:30/13:00 压缩点落在可见域内） --- */
-  if (120 >= dom.mLo && 120 <= dom.mHi) {
+  if (!dayMode && 120 >= dom.mLo && 120 <= dom.mHi) {
     const xm = xOf(120);
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -1567,8 +1827,11 @@ function drawChart() {
   ctx.textBaseline = 'top';
   const yb = g.plotB + 6;
   for (const m of ticks) {
-    if (!state.win && m === 120) continue; // 全天视图：午休点由虚线表达，不标文字
-    const lbl = state.win && m === 120 ? '11:30/13:00' : mToClock(m);
+    if (dayMode && (m === 0 || (dom.days >= 10 && m % 2 && m !== dom.days))) continue;
+    if (!dayMode && !state.win && m === 120) continue; // 全天视图：午休点由虚线表达，不标文字
+    const date = dayMode ? dom.dates[m - 1] : '';
+    const lbl = dayMode ? (date ? date.slice(4, 6) + '-' + date.slice(6, 8) : '')
+      : state.win && m === 120 ? '11:30/13:00' : mToClock(m);
     const x = xOf(m);
     ctx.font = (lbl.length > 5 ? '9px' : '10px') + ' system-ui, sans-serif';
     let align = 'center', tx = x; // 首尾刻度防截断
@@ -1585,7 +1848,7 @@ function drawChart() {
   const drawSeries = (s, dim) => {
     const ser = seriesOf(s);
     if (!ser.length) return;
-    const k = drawnCount(s, now); // 调用后 s.anim===null 表示动画已完成
+    const k = dayMode ? ser.length : drawnCount(s, now); // 多日线不重播日内生长动画
     const n = Math.min(Math.floor(k), ser.length);
     const frac = k - Math.floor(k);
     ctx.save();
@@ -1618,7 +1881,7 @@ function drawChart() {
     const hpts = [];
     for (const p of ser) if (p.m >= dom.mLo) { hpts.push(xOf(p.m)); hpts.push(Y(p.v, g, sc)); }
     hitTargets.curves.push({ bk: s.bk, pts: hpts });
-    if (!s.anim) { // 端点与标签仅在生长完成后显示
+    if (dayMode || !s.anim) { // 多日线直接显示标签；日内线等待生长完成
       const p = ser[ser.length - 1];
       labels.push({ s, ex: xOf(p.m), ey: Y(p.v, g, sc), lastV: p.v, dim });
     }
@@ -1626,10 +1889,14 @@ function drawChart() {
   for (const s of state.sectors) if (s.bk !== selBk) drawSeries(s, true);
   for (const s of state.sectors) if (s.bk === selBk) drawSeries(s, false);
 
-  /* --- 指数叠加（恒定三线，双轴：0% 对齐资金 0 轴，百分比也保持单一线性比例） --- */
-  if (state.indexes.length) {
+  /* --- 指数叠加（可独立显隐；双轴 0% 与资金 0 轴对齐） --- */
+  const visibleIndexes = state.indexes
+    .filter(ix => !state.idxHidden[ix.secid])
+    .map(ix => ({ ix, ser: indexSeriesOf(ix) }))
+    .filter(x => x.ser.length);
+  if (visibleIndexes.length) {
     const pctValues = [];
-    for (const ix of state.indexes) for (const p of ix.pts)
+    for (const x of visibleIndexes) for (const p of x.ser)
       if (p.m >= dom.mLo && p.m <= dom.mHi && Number.isFinite(p.v)) pctValues.push(p.v);
     const posRaw = Math.max(0, ...pctValues), negRaw = Math.abs(Math.min(0, ...pctValues));
     const pctStep = niceStep(Math.max(posRaw, negRaw, .1) / 2);
@@ -1651,8 +1918,9 @@ function drawChart() {
       ctx.fillStyle = UI.txtDim;
       ctx.fillText((v > 0 ? '+' : '') + Number(v.toPrecision(4)) + '%', g.plotR + 5, y);
     }
-    for (const ix of state.indexes) {
-      const visible = ix.pts.filter(p => p.m >= dom.mLo && p.m <= dom.mHi);
+    for (const x of visibleIndexes) {
+      const ix = x.ix;
+      const visible = x.ser.filter(p => p.m >= dom.mLo && p.m <= dom.mHi);
       if (visible.length < 2) continue;
       ctx.save();
       ctx.setLineDash([5, 3]);
@@ -1729,11 +1997,11 @@ function drawChart() {
   }
 
   /* --- 空状态 --- */
-  if (!state.sectors.some(s => s.points.length)) {
+  if (!state.sectors.some(s => seriesOf(s).length)) {
     ctx.fillStyle = UI.txtFaint;
     ctx.font = '13px system-ui, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(state.everFetched ? '暂无分时数据' : '正在获取数据…',
+    ctx.fillText(state.multiBusy ? '正在加载多日数据…' : state.everFetched ? (dayMode ? '暂无多日数据' : '暂无分时数据') : '正在获取数据…',
       g.W / 2, (g.plotT + g.plotB) / 2);
   }
 }
@@ -1804,6 +2072,11 @@ async function loadRankPrev(list) {
   const mySource = state.source;
   const codes = [...new Set(list.map(d => d && d.f12).filter(Boolean))].slice(0, 20);
   seedRankPrevFromStore(codes);
+  for (const bk of codes) {
+    const c = cachedDayFlow(bk);
+    const prev = c && c.rows.filter(x => x.date < fallbackRef).pop();
+    if (prev) state.rankPrev[bk] = { ref: fallbackRef, date: prev.date, v: prev.v, ts: c.ts, local: true };
+  }
   const jobs = codes.filter(bk => {
     const c = state.rankPrev[bk];
     return !state.rankPrevBusy.has(bk) && (!c || c.ref !== fallbackRef || Date.now() - c.ts > 21600000);
@@ -1812,8 +2085,7 @@ async function loadRankPrev(list) {
   jobs.forEach(bk => state.rankPrevBusy.add(bk));
   await Promise.all(jobs.map(async bk => {
     try {
-      const r = await jsonp(sectorDayUrl(bk), 5000); // 背景补数只试一次，避免影响主图/ETF实时刷新
-      const rows = parseDayFlows(r && r.data && r.data.klines);
+      const { rows } = await requestSectorDayRows(bk); // 与主图多日预热去重，避免同一板块重复请求
       if (state.dataDate !== fallbackRef || state.source !== mySource) return;
       const ref = fallbackRef;
       const prev = rows.filter(x => x.date < ref).pop() || null;
@@ -2162,6 +2434,7 @@ const BD = {
   resStocks: {}, resStockBusy: new Set(), // bk -> 共振个股价格曲线缓存
   divIdx: '1.000001',            // 背离栏参照指数 secid（默认上证）
   divOpen: null,                 // 背离栏展开的板块 BK（下钻个股）
+  divTrends: {}, divTrendBusy: new Set(), // 背离候选板块分钟价格曲线
   divStocks: {}, divBusy: false, // bk -> {ts, list:[{code,name,pct,val,contrib,lbc}]}
   ztMap: null, ztDate: '', ztBusy: false, // 涨停池 code -> 连板数（背离个股的连板高度）
 };
@@ -2552,12 +2825,14 @@ function collectSnapshot() {
   return {
     ts: Date.now(),
     source: state.source, total: state.total, selected: state.selected, rankTab: state.rankTab,
+    mode: state.mode, win: state.win, idxHidden: state.idxHidden,
     rankPeriod: state.rankPeriod, rankMulti: state.rankMulti, rankMultiErr: state.rankMultiErr, rankPrev: state.rankPrev,
     dataDate: state.dataDate,
     customBks: loadCustom(),
     sectors: state.sectors.map(s => ({ bk: s.bk, name: s.name, dir: s.dir, color: s.color,
-      points: s.points, vel: s.vel })),
-    indexes: state.indexes.map(ix => ({ secid: ix.secid, name: ix.name, color: ix.color, pts: ix.pts })),
+      points: s.points, vel: s.vel, dayFlows: (s.dayFlows || []).slice(-DAY_FLOW_HISTORY_LIMIT) })),
+    indexes: state.indexes.map(ix => ({ secid: ix.secid, name: ix.name, color: ix.color,
+      pts: ix.pts })),
     rankIn: state.rankIn, rankOut: state.rankOut,
     bdVisited: BD.visited,
     stockCache: sc,
@@ -2565,7 +2840,7 @@ function collectSnapshot() {
       map: [...ETF.map.entries()], scanTs: ETF.scanTs, scanErr: ETF.scanErr,
       expected: ETF.expected, complete: ETF.complete, failedPages: ETF.failedPages,
       dataDate: ETF.dataDate, lock: ETF.lock, watch: ETF.watch, trend: ETF.trend,
-      hist: ETF.hist, trendPts: ETF.trendPts, rkTab: ETF.rkTab, rkPeriod: ETF.rkPeriod,
+      hist: ETF.hist, trendPts: ETF.trendPts, rkTab: ETF.rkTab, rkPeriod: ETF.rkPeriod, ovPeriod: ETF.ovPeriod,
     },
   };
 }
@@ -2614,10 +2889,13 @@ function hydrateSnapshot() {
   state.dataDate = S.dataDate || '';
   state.marketDate = marketParts(new Date(S.ts)).date;
   state.selected = S.selected || null;
+  state.mode = S.mode === 'vel' ? 'vel' : 'cum';
+  state.win = [0, 60, 30, 15, 5, '3d', '5d', '10d'].includes(S.win) ? S.win : 0;
+  state.idxHidden = S.idxHidden && typeof S.idxHidden === 'object' ? S.idxHidden : {};
   state.rankTab = S.rankTab || 'in';
   state.rankPeriod = FLOW_PERIODS[S.rankPeriod] ? Number(S.rankPeriod) : 1;
   state.rankMulti = S.rankMulti || {}; state.rankMultiErr = S.rankMultiErr || {}; state.rankPrev = S.rankPrev || {};
-  state.sectors = (S.sectors || []).map(s => ({ ...s, anim: null,
+  state.sectors = (S.sectors || []).map(s => ({ ...s, dayFlows: (s.dayFlows || []).slice(-DAY_FLOW_HISTORY_LIMIT), anim: null,
     flashStart: 0, flashDir: 0, flashPending: null }));
   state.rankIn = S.rankIn || []; state.rankOut = S.rankOut || [];
   state.locked = true; state.everFetched = true;
@@ -2632,12 +2910,13 @@ function hydrateSnapshot() {
     ETF.lock = S.etf.lock || null; ETF.watch = S.etf.watch || []; ETF.trend = S.etf.trend || [];
     ETF.hist = S.etf.hist || {}; ETF.trendPts = S.etf.trendPts || {}; ETF.rkTab = S.etf.rkTab || 'in';
     ETF.rkPeriod = FLOW_PERIODS[S.etf.rkPeriod] ? Number(S.etf.rkPeriod) : 1;
+    ETF.ovPeriod = FLOW_PERIODS[S.etf.ovPeriod] ? Number(S.etf.ovPeriod) : 1;
   }
   state.indexes = (S.indexes || [])
     .filter(ix => ix && ix.pts && ix.pts.length)
     .map(ix => ({ ...ix, secid: ix.secid || (INDEXES.find(n => n.name === ix.name) || {}).secid })); // 旧快照按名称补 secid
   renderIdxChips();
-  updateTabs(); updateSub();
+  updateTabs(); syncViewTabs(); updateSub();
   setPressed(document.getElementById('rt-in'), state.rankTab === 'in');
   setPressed(document.getElementById('rt-out'), state.rankTab === 'out');
   renderRank();
@@ -2677,7 +2956,7 @@ const ETF = {
   watch: [], trend: [],                       // 关注 / 走势 code 列表（localStorage）
   hist: {},                                   // code -> [{t,v}] 30s×30 条滚动（锚点+关注，供5分钟变化）
   trendPts: {},                               // code -> 分钟分时（走势 Tab）
-  rkTab: 'in', rkPeriod: 1, rkQuery: '', klineBusy: false,
+  rkTab: 'in', rkPeriod: 1, ovPeriod: 1, rkQuery: '', klineBusy: false,
 };
 
 /* --- localStorage（键按交易日失效的带 date 字段校验） --- */
@@ -2691,6 +2970,8 @@ function etfInitState() {
   if (!ETF.lock || ETF.lock.date !== day) ETF.lock = null;                  // 跨日自动重锁
   ETF.watch = (etfLoad('watch', []) || []).filter(x => typeof x === 'string').slice(0, 30);
   ETF.trend = (etfLoad('trend', []) || []).filter(x => typeof x === 'string').slice(0, 6);
+  const ovPeriod = Number(etfLoad('ovPeriod', 1));
+  ETF.ovPeriod = FLOW_PERIODS[ovPeriod] ? ovPeriod : 1;
 }
 const etfDateTxt = () => ETF.dataDate ? `数据日 ${fmtDate(ETF.dataDate)}` : '数据日待确认';
 function quoteDataDate(ts) {
@@ -2811,13 +3092,13 @@ function etfDelta5(code) {
 }
 
 /* --- 六指标统计 --- */
-function etfStats() {
+function etfStats(period = 1) {
   const s = { got: ETF.map.size, exp: ETF.expected ? ETF.expected.n : 0,
     complete: ETF.complete, in: 0, out: 0, sum: 0, maxIn: null, maxOut: null, top5In: null, top5Out: null };
   const pos = [], neg = [];
   for (const [code, v] of ETF.map) {
-    if (typeof v.f62 !== 'number') continue; // f62=0/缺失：计入返回数，不参与统计
-    const yi = v.f62 / 1e8;
+    const yi = flowYi(v, period);
+    if (yi == null) continue; // 周期字段缺失：计入覆盖数，不参与该周期统计
     s.sum += yi;
     if (yi > 0) { s.in++; pos.push({ code, name: v.name, v: yi }); }
     else if (yi < 0) { s.out++; neg.push({ code, name: v.name, v: yi }); }
@@ -2863,7 +3144,7 @@ function etfCell(name, val, note) {
   return `<div class="etf-mcell"><div class="etf-mname">${name}</div><div class="etf-mval">${val}</div><div class="etf-mnote">${note}</div></div>`;
 }
 function etfRenderOv() {
-  const s = etfStats();
+  const period = ETF.ovPeriod, meta = periodMeta(period), s = etfStats(period);
   const valid = s.complete;
   const ratio = s.in + s.out ? Math.round(s.in / (s.in + s.out) * 100) : null;
   const cov = `<span class="up">${s.got}</span><span class="u">/${s.exp || '…'}</span>`;
@@ -2882,12 +3163,13 @@ function etfRenderOv() {
       : !valid ? '等待全量扫描完成后锁定最强流入/流出' : '等待开盘后锁定最强流入/流出');
   let html = `
     <div class="etf-sec-h"><span class="etf-sec-t">ETF资金决策摘要</span>
+      <span class="etf-periods" aria-label="ETF全市场净额周期">${[1, 3, 5, 10].map(p => `<button class="etf-tab${period === p ? ' on' : ''}" aria-pressed="${period === p}" data-etfovp="${p}">${periodMeta(p).label}</button>`).join('')}</span>
       <span class="etf-sec-note">每30秒更新${ETF.scanTs ? ' · ' + hhmmss(new Date(ETF.scanTs)) : ''}</span></div>
-    <div class="etf-sub">全量覆盖、资金广度与强弱锚点统一观察</div>
+    <div class="etf-sub">${meta.label}全市场合计、资金广度与强弱首位（切换不增加请求）</div>
     <div class="etf-mgrid">
       ${etfCell('全量覆盖', cov, coverageNote)}
       ${etfCell('资金广度', breadth, ratio == null ? '--' : `${valid ? '' : '已覆盖样本 · '}流入占比 ${ratio}%`)}
-      ${etfCell('主力净额合计', valid ? `<span class="${clsOf(s.sum)}">${fmtVal(s.sum)}</span>` : '--', valid ? '二级市场大单口径' : unavailable)}
+      ${etfCell(`${meta.label}主力净额合计`, valid ? `<span class="${clsOf(s.sum)}">${fmtVal(s.sum)}</span>` : '--', valid ? '二级市场大单累计口径' : unavailable)}
       ${etfCell('最强流入', maxIn, valid && s.maxIn ? `<span class="up">${fmtVal(s.maxIn.v)}</span>` : unavailable)}
       ${etfCell('最强流出', maxOut, valid && s.maxOut ? `<span class="down">${fmtVal(s.maxOut.v)}</span>` : unavailable)}
       ${etfCell('Top5集中度', valid ? `${pct(s.top5In)} <span class="u">/</span> ${pct(s.top5Out)}` : '--', valid ? '流入 / 流出' : unavailable)}
@@ -3153,7 +3435,7 @@ function etfRender() {
     if (waTab) waTab.textContent = `观察 ${ETF.watch.length}`;
     const note = $id('etfTabNote');
     if (note) note.textContent = ({
-      ov: '总览：判断全市场强弱，并把强弱锚点加入走势或观察。',
+      ov: '总览：可切换当日或 3/5/10 个交易日，查看全市场 ETF 净额、广度与强弱。',
       td: '走势：只展示你选中的 ETF 分钟资金曲线，最多 6 条。',
       rk: '排行：全市场筛选入口，可按当日或 3/5/10 个交易日选择 ETF。',
       wa: '观察：长期保留的候选清单，并显示当日净额与 5 分钟变化。',
@@ -3192,7 +3474,7 @@ function etfToggleWatch(code) {
   etfRender();
 }
 $id('etfBody').addEventListener('click', ev => {
-  const el = ev.target.closest('[data-etftrend],[data-etfwatch],[data-etfremove],[data-etfrelock],[data-etfrk],[data-etfrkp],[data-etfgoperiod]');
+  const el = ev.target.closest('[data-etftrend],[data-etfwatch],[data-etfremove],[data-etfrelock],[data-etfrk],[data-etfrkp],[data-etfovp],[data-etfgoperiod]');
   if (!el) return;
   if (el.hasAttribute('data-etftrend')) etfToggleTrend(el.getAttribute('data-etftrend'));
   else if (el.hasAttribute('data-etfwatch')) etfToggleWatch(el.getAttribute('data-etfwatch'));
@@ -3209,6 +3491,10 @@ $id('etfBody').addEventListener('click', ev => {
   } else if (el.hasAttribute('data-etfrkp')) {
     ETF.rkPeriod = Number(el.getAttribute('data-etfrkp')) || 1;
     etfRenderRk();
+  } else if (el.hasAttribute('data-etfovp')) {
+    ETF.ovPeriod = Number(el.getAttribute('data-etfovp')) || 1;
+    etfStore('ovPeriod', ETF.ovPeriod);
+    etfRenderOv();
   } else if (el.hasAttribute('data-etfgoperiod')) {
     ETF.rkPeriod = Number(el.getAttribute('data-etfgoperiod')) || 1;
     etfSetTab('rk');
@@ -3243,9 +3529,11 @@ function resetMarketDay(day) {
   state.everFetched = false; state.total = 0; state.rankIn = []; state.rankOut = [];
   state.rankMulti = {}; state.rankMultiErr = {}; state.rankPrev = {}; state.rankPrevBusy = new Set();
   state.expanded = null; state.stockCache = {}; state.selected = null; state.indexes = [];
+  state.multiReqGen++; state.multiBusy = false; state.multiTs = 0; state.multiErr = false; state.multiCached = false;
   BD.gen++; BD.mainBk = null; BD.subs = []; BD.snapshots = []; BD.lastSnap = 0;
   BD.visited = {}; BD.resIdx = null; BD.resOpen = null; BD.resTrendTs = 0;
   BD.resStocks = {}; BD.resStockBusy.clear(); BD.divOpen = null; BD.divStocks = {};
+  BD.divTrends = {}; BD.divTrendBusy.clear();
   BD.ztMap = null; BD.ztDate = '';
   ETF.scanGen++; ETF.scanning = false; ETF.map = new Map(); ETF.scanTs = 0; ETF.scanErr = false;
   ETF.complete = false; ETF.failedPages = []; ETF.dataDate = ''; ETF.lock = null;
@@ -3290,8 +3578,8 @@ function loop() {
     }
     // 展开的背离板块：个股 30 秒续期（盘中实时刷新贡献度/连板/净额）
     if (!SNAP && BD.divOpen && ['auction', 'trading'].includes(state.phase)) {
-      const c = BD.divStocks[BD.divOpen];
-      if (!c || Date.now() - c.ts > 30000) fetchDivStocks(BD.divOpen);
+      const c = BD.divStocks[relationStockKey(BD.divOpen, BD.divIdx)];
+      if (!c || Date.now() - c.ts > 30000) fetchDivStocks(BD.divOpen, BD.divIdx);
     }
     // 共振曲线每分钟续期；同频评分使用分钟价格变化，不跟随 10 秒报价抖动重拉。
     if (!SNAP && BD.subs.length && ['auction', 'trading'].includes(state.phase) &&
